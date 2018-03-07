@@ -6,7 +6,7 @@ from .. import model
 import typing
 
 
-DEFINE_LAMBDA_MACROS_NAME = '_define'
+DEFINE_LAMBDA_MACROS_NAME = 'define_'
 RETURN_VARIABLE_NAME = 'ret'
 
 
