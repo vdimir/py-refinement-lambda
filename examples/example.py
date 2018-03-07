@@ -18,6 +18,11 @@ def main():
                                   lambda x: 2 <= x*2 <= 4)
 
 
+    example_simlpe_wrong = _define('int -> int -> int',
+                                  'x > 0 and y > 0',
+                                  'ret > 1',
+                                  lambda x, y : x*y)
+
     example_tup = x_define('(int, int, int) -> int -> (int, int)',
                            'a[0] > a[1] and 0 <= i < 3',
                            lambda a, b: (a[i], a[(i + 1) % 3]))

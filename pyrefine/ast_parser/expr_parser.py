@@ -1,29 +1,35 @@
-"""Convert python expression presented in AST to Z3 expression."""
-
 import ast
-import operator
-import z3
-
 from collections import deque
 
-ast_to_z3_op = {
-    ast.FloorDiv: operator.truediv,
-    ast.And: z3.And,
-    ast.Add: operator.add,
-    ast.Mult: operator.mul,
-    ast.Or: z3.Or,
-    ast.Eq: operator.eq,
-    ast.Gt: operator.gt,
-    ast.GtE: operator.ge,
-    ast.Lt: operator.lt,
-    ast.LtE: operator.le,
-}
+from .mapping import operator_ast_to_model
+from ..model import operators
+from ..model import VarsContext
 
 
-class ExpToZ3(ast.NodeVisitor):
-    def __init__(self, z3_ctx):
+class ExprParser:
+    def __init__(self, var_ctx: VarsContext):
+        self.var_ctx = var_ctx
+
+    def parse_expr_node(self, expr_node):
+        expr_visitor = ExprVisitor(self.var_ctx)
+        expr_visitor.visit(expr_node)
+        assert len(expr_visitor.res) == 1
+        return expr_visitor.pop_result()
+
+    def parse_expr_str(self, expr_str):
+        exp_ast = ast.parse(expr_str).body
+        assert len(exp_ast) == 1, "Wrong expr in cond!"
+        exp_ast = exp_ast[0].value
+        expr_visitor = ExprVisitor(self.var_ctx)
+        expr_visitor.visit(exp_ast)
+        assert len(expr_visitor.res) == 1
+        return expr_visitor.pop_result()
+
+
+class ExprVisitor(ast.NodeVisitor):
+    def __init__(self, var_ctx: VarsContext):
         self.res = deque()
-        self.context = z3_ctx
+        self.context = var_ctx
 
     def visit_and_pop(self, expr):
         self.visit(expr)
@@ -48,7 +54,7 @@ class ExpToZ3(ast.NodeVisitor):
             self.visit(operand)
             operand_list.append(self.pop_result())
 
-        bool_op = ast_to_z3_op[type(e.op)]
+        bool_op = operator_ast_to_model(e.op)
         self.push_result(bool_op(operand_list))
 
     def visit_BinOp(self, e):
@@ -58,11 +64,12 @@ class ExpToZ3(ast.NodeVisitor):
         self.visit(e.right)
         rhs = self.pop_result()
 
-        zexp = ast_to_z3_op[type(e.op)](lhs, rhs)
+        op_func = operator_ast_to_model(e.op)
+        zexp = op_func(lhs, rhs)
         self.push_result(zexp)
 
     def visit_Name(self, e):
-        var = self.context[e.id]
+        var = self.context.get_var(e.id)
         self.push_result(var)
 
     def visit_Num(self, e):
@@ -72,7 +79,7 @@ class ExpToZ3(ast.NodeVisitor):
         test_exp = self.visit_and_pop(e.test)
         t_branch = self.visit_and_pop(e.body)
         f_branch = self.visit_and_pop(e.orelse)
-        if_exp = z3.If(test_exp, t_branch, f_branch)
+        if_exp = operators.If(test_exp, t_branch, f_branch)
         self.push_result(if_exp)
 
     def visit_Compare(self, e):
@@ -82,11 +89,11 @@ class ExpToZ3(ast.NodeVisitor):
         ops = e.ops
         results = []
         for op, rhs in zip(ops, operands):
-            res = ast_to_z3_op[type(op)](lhs, rhs)
+            res = operator_ast_to_model(op)(lhs, rhs)
             lhs = rhs
             results.append(res)
 
-        self.push_result(z3.And(results))
+        self.push_result(operators.And(results))
 
     def visit_NameConstant(self, e):
         val = e.value
