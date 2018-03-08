@@ -15,3 +15,6 @@ class VarsContext:
 
     def get_var(self, name):
         return z3.Const(name, self.var_sort[name]())
+
+    def __str__(self):
+        return "%s(%r)" % (self.__class__.__name__, self.__dict__)

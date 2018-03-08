@@ -17,7 +17,7 @@ def main():
                                   'ret == True',
                                   lambda x: 2 <= x*2 <= 4)
 
-    example_simlpe_wrong = xdefine_('int -> int -> int',
+    example_simlpe_wrong = define_('int -> int -> int',
                                   'x > 0 and y > 0',
                                   'ret > 1',
                                   lambda x, y : x*y)

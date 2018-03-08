@@ -1,4 +1,4 @@
-from .lambda_checker import check_all_lambdas
+from .lambda_checker import *
 
 
 

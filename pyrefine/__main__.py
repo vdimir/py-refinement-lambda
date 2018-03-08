@@ -4,7 +4,8 @@
 import sys
 import ast
 
-from .checker import check_all_lambdas
+from .ast_parser.lambda_parser import get_lambdas_model
+from .checker import check_all_lambdas, check_lambda_model
 
 
 def main():
@@ -14,7 +15,12 @@ def main():
         s = f.read()
 
     program_ast = ast.parse(s, fname)
-    check_all_lambdas(program_ast)
+
+    models = get_lambdas_model(program_ast)
+    for m in models:
+        print(m)
+        check_lambda_model(m)
+        print()
 
 
 if __name__ == '__main__':

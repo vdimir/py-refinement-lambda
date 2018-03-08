@@ -20,7 +20,7 @@ class LambdaParser:
     def __init__(self):
         pass
 
-    def parse_lambda_node(self, node):
+    def parse_lambda_node(self, node) -> model.LambdaModel:
         type_def, pre_cond, post_cond, func = node.args
         arg_names = list(map(lambda a: a.arg, func.args.args))
 
@@ -56,12 +56,30 @@ class LambdaParser:
 
 
 class LambdaVisitor(ast.NodeVisitor):
+    """Visit lambda definition wrapped in macro."""
+
     def __init__(self):
         self.result = []
 
-    def visit_Call(self, e):
+    def visit_Assign(self, node: ast.Assign):
+        if not isinstance(node.value, ast.Call):
+            return
+
+        lambda_model = self.visit_Call(node.value)
+        if lambda_model is None:
+            return
+
+        if len(node.targets) != 1 or not isinstance(node.targets[0], ast.Name):
+            raise Exception("Wrong assign!")
+
+        lambda_model.set_name(node.targets[0].id)
+        self.result.append(lambda_model)
+
+    def visit_Call(self, e) -> typing.Optional[model.LambdaModel]:
+        if not isinstance(e.func, ast.Name):
+            return
+
         if e.func.id != DEFINE_LAMBDA_MACROS_NAME:
-            # skip
             return
 
         if len(e.args) != 4:
@@ -69,5 +87,5 @@ class LambdaVisitor(ast.NodeVisitor):
 
         prs = LambdaParser()
         lambda_model = prs.parse_lambda_node(e)
-        self.result.append(lambda_model)
+        return lambda_model
 
