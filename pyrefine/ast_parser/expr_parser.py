@@ -4,6 +4,8 @@ from collections import deque
 from .mapping import operator_ast_to_model
 from ..model import operators
 from ..model import VarsContext
+from .. import model
+from .mapping import type_str_to_model
 
 
 class ExprParser:
@@ -99,6 +101,36 @@ class ExprVisitor(ast.NodeVisitor):
         val = e.value
         self.push_result(val)
 
+    def visit_Call(self, e):
+        if not isinstance(e.func, ast.Name):
+            return
+
+        if e.func.id == 'forall_':
+            assert len(e.args) == 2, "Forall mut contain 2 args!"
+            res = _parse_forall(e.args[0], e.args[1], self.context)
+            self.res.append(res)
+            return
+
+        func_type = self.context.get_var(e.func.id)
+
+        args = map(self.visit_and_pop, e.args)
+        self.res.append(func_type(*args))
+
     def generic_visit(self, e):
         print(ast.dump(e))
         raise Exception("Nodes %s not supported" % str(e))
+
+
+def _parse_forall(binded_vars, body, var_ctx):
+    assert isinstance(binded_vars, ast.Dict), "Forall parsing error!"
+
+    binded_vars_ctx = VarsContext()
+    for name, var_type in zip(binded_vars.keys, binded_vars.values):
+        assert isinstance(name, ast.Name) and isinstance(var_type, ast.Name)
+        binded_vars_ctx.add_var(name.id, type_str_to_model(var_type.id))
+
+    binded_vars_ctx.set_parent_context(var_ctx)
+
+    expr_parser = ExprParser(binded_vars_ctx)
+    res = expr_parser.parse_expr_node(body)
+    return operators.ForAll(binded_vars_ctx.get_var_list(), res)

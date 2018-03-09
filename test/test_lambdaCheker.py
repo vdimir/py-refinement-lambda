@@ -56,6 +56,36 @@ class TestLambdaChecker(unittest.TestCase):
         res = check_lambda_model(models['example_simple_wrong'])
         self.assertIsNotNone(res)
 
+    def test_func_arg(self):
+        program_safe = """example_fun = define_('int -> (int -> int) -> int',
+                                  'forall_({x : int}, f(x) > 0)',
+                                  'ret > 1',
+                                  lambda a, f: f(a) + 1)"""
+
+        program_unsafe = """example_fun = define_('(int -> int) -> bool',
+                                  'forall_({x : int}, f(x) > 0)',
+                                  'ret',
+                                  lambda f: f(0) > 1)"""
+
+        self.assertProgramSafe(program_safe)
+        self.assertProgramUnSafe(program_unsafe)
+
+    def assertProgramSafe(self, program):
+        program_ast = ast.parse(program, "main.py")
+        models = get_lambdas_model(program_ast)
+        for model in models:
+            res = check_lambda_model(model)
+            self.assertIsNone(res)
+
+    def assertProgramUnSafe(self, program):
+        program_ast = ast.parse(program, "main.py")
+        models = get_lambdas_model(program_ast)
+        for model in models:
+            res = check_lambda_model(model)
+            if res is not None:
+                return
+        self.fail("No one unsafe!")
+
 
 if __name__ == '__main__':
     unittest.main()
