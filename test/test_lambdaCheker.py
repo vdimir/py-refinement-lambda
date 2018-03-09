@@ -70,6 +70,24 @@ class TestLambdaChecker(unittest.TestCase):
         self.assertProgramSafe(program_safe)
         self.assertProgramUnSafe(program_unsafe)
 
+    def test_implication(self):
+        program = """example_fun_imp = define_('int -> (int -> int) -> int',
+                                  'forall_({x : int}, (x > 0) >> (f(x) > 0)) and ~(a > -2)',
+                                  'ret > 1',
+                                  lambda a, f: f(-a) + 1)""" + \
+                    """\n\nexample_imp = define_('int -> int -> int',
+                                       '(x > 0) >> (y > 1)',
+                                       'ret > x or ret <= 0 ',
+                                       lambda x, y: x * y)"""
+
+        program1_wrong = """example_fun_imp = define_('int -> (int -> int) -> int',
+                                  'forall_({x : int}, (x > 0) >> (f(x) > 0))',
+                                  'ret > 1',
+                                  lambda a, f: f(-a) + 1)"""
+
+        self.assertProgramSafe(program)
+        self.assertProgramUnSafe(program1_wrong)
+
     def assertProgramSafe(self, program):
         program_ast = ast.parse(program, "main.py")
         models = get_lambdas_model(program_ast)

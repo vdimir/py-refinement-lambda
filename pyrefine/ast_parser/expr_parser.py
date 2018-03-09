@@ -9,11 +9,12 @@ from .mapping import type_str_to_model
 
 
 class ExprParser:
-    def __init__(self, var_ctx: VarsContext):
+    def __init__(self, var_ctx: VarsContext, dsl=False):
+        self.dsl_enabled = dsl
         self.var_ctx = var_ctx
 
     def parse_expr_node(self, expr_node):
-        expr_visitor = ExprVisitor(self.var_ctx)
+        expr_visitor = ExprVisitor(self.var_ctx, dsl=self.dsl_enabled)
         expr_visitor.visit(expr_node)
         assert len(expr_visitor.res) == 1
         return expr_visitor.pop_result()
@@ -22,14 +23,15 @@ class ExprParser:
         exp_ast = ast.parse(expr_str).body
         assert len(exp_ast) == 1, "Wrong expr in cond!"
         exp_ast = exp_ast[0].value
-        expr_visitor = ExprVisitor(self.var_ctx)
+        expr_visitor = ExprVisitor(self.var_ctx, dsl=self.dsl_enabled)
         expr_visitor.visit(exp_ast)
         assert len(expr_visitor.res) == 1
         return expr_visitor.pop_result()
 
 
 class ExprVisitor(ast.NodeVisitor):
-    def __init__(self, var_ctx: VarsContext):
+    def __init__(self, var_ctx: VarsContext, dsl=False):
+        self.dsl_enabled = dsl
         self.res = deque()
         self.context = var_ctx
 
@@ -66,7 +68,7 @@ class ExprVisitor(ast.NodeVisitor):
         self.visit(e.right)
         rhs = self.pop_result()
 
-        op_func = operator_ast_to_model(e.op)
+        op_func = operator_ast_to_model(e.op, self.dsl_enabled)
         zexp = op_func(lhs, rhs)
         self.push_result(zexp)
 
@@ -108,13 +110,18 @@ class ExprVisitor(ast.NodeVisitor):
         if e.func.id == 'forall_':
             assert len(e.args) == 2, "Forall mut contain 2 args!"
             res = _parse_forall(e.args[0], e.args[1], self.context)
-            self.res.append(res)
+            self.push_result(res)
             return
 
         func_type = self.context.get_var(e.func.id)
 
         args = map(self.visit_and_pop, e.args)
-        self.res.append(func_type(*args))
+        self.push_result(func_type(*args))
+
+    def visit_UnaryOp(self, node):
+        op_func = operator_ast_to_model(node.op, self.dsl_enabled)
+        arg = self.visit_and_pop(node.operand)
+        self.push_result(op_func(arg))
 
     def generic_visit(self, e):
         print(ast.dump(e))
@@ -131,6 +138,6 @@ def _parse_forall(binded_vars, body, var_ctx):
 
     binded_vars_ctx.set_parent_context(var_ctx)
 
-    expr_parser = ExprParser(binded_vars_ctx)
+    expr_parser = ExprParser(binded_vars_ctx, dsl=True)
     res = expr_parser.parse_expr_node(body)
     return operators.ForAll(binded_vars_ctx.get_var_list(), res)

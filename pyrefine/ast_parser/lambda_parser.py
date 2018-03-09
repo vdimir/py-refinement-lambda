@@ -34,9 +34,11 @@ class LambdaParser:
         var_ctx = model.VarsContext()
         var_ctx.add_list(zip(arg_names, arg_types))
 
-        expr_parser = ExprParser(var_ctx)
+        expr_parser = ExprParser(var_ctx, dsl=True)
         pre_cond = expr_parser.parse_expr_str(pre_cond.s)
         post_cond = expr_parser.parse_expr_str(post_cond.s)
+
+        expr_parser = ExprParser(var_ctx, dsl=False)
         func_body_model = expr_parser.parse_expr_node(func.body)
 
         lambda_model = model.LambdaModel(args=var_ctx,

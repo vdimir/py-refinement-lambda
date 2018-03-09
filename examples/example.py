@@ -23,24 +23,24 @@ def main():
                                    lambda x, y: x*y)
 
 
-    example_implication = xdefine_('int -> int -> int',
-                                   'x > 0 >> y > 0',
+    example_implication = define_('int -> int -> int',
+                                   '(x > 0) >> (y > 0)',
                                    'ret > 0',
                                    lambda x, y: x*y)
-
-    example_tup = xdefine_('(int, int, int) -> int -> (int, int)',
-                           'a[0] > a[1] and 0 <= i < 3',
-                           lambda a, i: (a[i], a[(i + 1) % 3]))
 
     example_fun = define_('int -> (int -> int) -> int',
                           'forall_({x : int}, f(x) > 0)',
                           'ret > 1',
                           lambda a, f: f(a) + 1)
 
-    example_fun_imp = xdefine_('int -> (int -> int) -> int',
-                              'forall_({x : int}, x > 0 >> f(x) > 0) and a > 1',
+    example_fun_imp = define_('int -> (int -> int) -> int',
+                              'forall_({x : int}, (x > 0) >> (f(x) > 0)) and a < -2',
                               'ret > 1',
-                              lambda a, f: f(a) + 1)
+                              lambda a, f: f(-a) + 1)
+
+    example_tup = xdefine_('(int, int, int) -> int -> (int, int)',
+                           'a[0] > a[1] and 0 <= i < 3',
+                           lambda a, i: (a[i], a[(i + 1) % 3]))
 
     x = example_simple2(5, 7)
     y = example_simple2(example_simple1(2), 1)
