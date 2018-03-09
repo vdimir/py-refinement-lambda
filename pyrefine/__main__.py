@@ -5,7 +5,7 @@ import sys
 import ast
 
 from .ast_parser.lambda_parser import get_lambdas_model
-from .checker import check_all_lambdas, check_lambda_model
+from .checker import check_lambda_model
 
 
 def main():
@@ -19,7 +19,13 @@ def main():
     models = get_lambdas_model(program_ast)
     for m in models:
         print(m)
-        check_lambda_model(m)
+        res = check_lambda_model(m)
+        if res is not None:
+            print("UNSAFE!")
+            print("Wrong function at line: {}\nCounterexample: {}."
+                  .format(m.src_data['lineno'], res))
+        else:
+            print('SAFE.')
         print()
 
 

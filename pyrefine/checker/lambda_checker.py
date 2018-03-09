@@ -14,15 +14,12 @@ def check_lambda_model(lambda_model):
     solver.add(z3.Not(lambda_model.post_cond))
     check = solver.check()
 
-    if check == z3.sat:
-        print("UNSAFE!")
-        print("Wrong function at line: {}\nCounterexample: {}."
-              .format(lambda_model.src_data['lineno'], solver.model()))
-    else:
-        print("SAFE.")
+    if check == z3.unsat:
+        return
+    return solver.model()
 
 
-def check_all_lambdas(program_ast):
-    models = get_lambdas_model(program_ast)
-    for m in models:
-        check_lambda_model(m)
+# def check_all_lambdas(program_ast):
+#     models = get_lambdas_model(program_ast)
+#     for m in models:
+#         check_lambda_model(m)
