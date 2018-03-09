@@ -16,12 +16,13 @@ _operator_ast_to_model = {
 }
 
 _type_string_to_model = {
-    'int': types.IntSort,
-    'bool': types.BoolSort
+    'int': types.IntVar,
+    'bool': types.BoolVar,
 }
 
+
 def type_str_to_model(s):
-    return _type_string_to_model[s]
+    return _type_string_to_model[s]()
 
 
 def operator_ast_to_model(op):

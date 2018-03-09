@@ -26,8 +26,8 @@ def main():
                            'a[0] > a[1] and 0 <= i < 3',
                            lambda a, i: (a[i], a[(i + 1) % 3]))
 
-    example_fun = xdefine_('int -> fun(int, int) -> int',
-                           'forall(x, f(x) > 0)',
+    example_fun = xdefine_('int -> (int -> int) -> int',
+                           "forall({x : int}, f(x) > 0)",
                            'ret > 1',
                            lambda a, f: f(a) + 1)
 

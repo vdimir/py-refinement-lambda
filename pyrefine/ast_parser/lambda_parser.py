@@ -4,6 +4,7 @@ from .mapping import type_str_to_model
 from .expr_parser import ExprParser
 from .. import model
 import typing
+import pyparsing as prs
 
 
 DEFINE_LAMBDA_MACROS_NAME = 'define_'
@@ -24,15 +25,14 @@ class LambdaParser:
         type_def, pre_cond, post_cond, func = node.args
         arg_names = list(map(lambda a: a.arg, func.args.args))
 
-        arg_types_str, ret_type_str = self.parse_type_def_str(type_def.s)
+        arg_types = self.parse_type_def_str(type_def.s)
 
-        assert len(arg_types_str) == len(arg_names), (
+        assert len(arg_types) == len(arg_names) + 1, (
             "Function annotation mismatch (at: %d)" % node.lineno)
 
+        arg_names.append(RETURN_VARIABLE_NAME)
         var_ctx = model.VarsContext()
-        arg_sorts_model = map(type_str_to_model, arg_types_str)
-        var_ctx.add_list(zip(arg_names, arg_sorts_model))
-        var_ctx.add_var(RETURN_VARIABLE_NAME, type_str_to_model(ret_type_str))
+        var_ctx.add_list(zip(arg_names, arg_types))
 
         expr_parser = ExprParser(var_ctx)
         pre_cond = expr_parser.parse_expr_str(pre_cond.s)
@@ -50,9 +50,31 @@ class LambdaParser:
 
     def parse_type_def_str(self, typedef_str: str):
         """Parse function type annotation."""
-        annot = map(str.strip, typedef_str.split('->'))
-        *args, ret = (list(annot))
-        return args, ret
+
+        lpar = prs.Literal('(').suppress()
+        rpar = prs.Literal(')').suppress()
+        arr = prs.Literal('->').suppress()
+        term = prs.Word(prs.alphas)
+        func_def = prs.Forward()
+        typ = term | prs.Group(lpar + func_def + rpar)
+        func_def << typ + prs.ZeroOrMore(arr + typ)
+        func_def += prs.StringEnd()
+        res = func_def.parseString(typedef_str).asList()
+
+        def unroll(lst):
+            for t in lst:
+                if isinstance(t, str):
+                    yield type_str_to_model(t)
+                elif isinstance(t, list):
+                    args = unroll(t)
+                    func = model.types.FuncVar()
+                    for a in args:
+                        func.add_arg(a)
+                    yield func
+                else:
+                    assert False
+
+        return list(unroll(res))
 
 
 class LambdaVisitor(ast.NodeVisitor):

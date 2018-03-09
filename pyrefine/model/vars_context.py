@@ -6,6 +6,7 @@ class VarsContext:
         self.var_sort = {}
 
     def add_var(self, name, sort):
+        assert name not in self.var_sort
         self.var_sort[name] = sort
         return self
 
@@ -14,7 +15,7 @@ class VarsContext:
             self.add_var(n, s)
 
     def get_var(self, name):
-        return z3.Const(name, self.var_sort[name]())
+        return self.var_sort[name].get_z3_var(name)
 
     def __str__(self):
         return "%s(%r)" % (self.__class__.__name__, self.__dict__)
