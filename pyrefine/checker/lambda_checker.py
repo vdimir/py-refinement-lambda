@@ -8,7 +8,7 @@ def check_lambda_model(lambda_model):
     solver.add(lambda_model.pre_cond)
 
     ret_var_name = lambda_model.ret_var_name
-    ret_var_bind = lambda_model.variables.get_var(ret_var_name) == lambda_model.body
+    ret_var_bind = lambda_model.variables.get_var_z3(ret_var_name) == lambda_model.body
 
     solver.add(ret_var_bind)
     solver.add(z3.Not(lambda_model.post_cond))

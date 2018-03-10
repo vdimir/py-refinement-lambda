@@ -18,15 +18,17 @@ def main():
 
     models = get_lambdas_model(program_ast)
     for m in models:
-        print(m)
         res = check_lambda_model(m)
-        if res is not None:
-            print("UNSAFE!")
-            print("Wrong function at line: {}\nCounterexample: {}."
-                  .format(m.src_data['lineno'], res))
-        else:
-            print('SAFE.')
+        print(res)
+        print(m)
         print()
+        # if res is not None:
+        #     print("UNSAFE!")
+        #     print("Wrong function at line: {}\nCounterexample: {}."
+        #           .format(m.src_data['lineno'], res))
+        # else:
+        #     print('SAFE.')
+        # print()
 
 
 if __name__ == '__main__':

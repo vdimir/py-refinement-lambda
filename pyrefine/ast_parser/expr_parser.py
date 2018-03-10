@@ -4,7 +4,6 @@ from collections import deque
 from .mapping import operator_ast_to_model
 from ..model import operators
 from ..model import VarsContext
-from .. import model
 from .mapping import type_str_to_model
 
 
@@ -73,7 +72,7 @@ class ExprVisitor(ast.NodeVisitor):
         self.push_result(zexp)
 
     def visit_Name(self, e):
-        var = self.context.get_var(e.id)
+        var = self.context.get_var_z3(e.id)
         self.push_result(var)
 
     def visit_Num(self, e):
@@ -113,7 +112,7 @@ class ExprVisitor(ast.NodeVisitor):
             self.push_result(res)
             return
 
-        func_type = self.context.get_var(e.func.id)
+        func_type = self.context.get_var_z3(e.func.id)
 
         args = map(self.visit_and_pop, e.args)
         self.push_result(func_type(*args))
@@ -134,7 +133,9 @@ def _parse_forall(binded_vars, body, var_ctx):
     binded_vars_ctx = VarsContext()
     for name, var_type in zip(binded_vars.keys, binded_vars.values):
         assert isinstance(name, ast.Name) and isinstance(var_type, ast.Name)
-        binded_vars_ctx.add_var(name.id, type_str_to_model(var_type.id))
+        variable = type_str_to_model(var_type.id)
+        variable.set_name("$$" + name.id)
+        binded_vars_ctx.add_var(name.id, variable)
 
     binded_vars_ctx.set_parent_context(var_ctx)
 

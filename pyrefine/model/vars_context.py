@@ -4,11 +4,11 @@ import z3
 class VarsContext:
     def __init__(self):
         self.parent_context = None
-        self.var_sort = {}
+        self.variables = {}
 
-    def add_var(self, name: str, sort):
-        assert name not in self.var_sort
-        self.var_sort[name] = sort
+    def add_var(self, name: str, variable_type):
+        assert name not in self.variables
+        self.variables[name] = variable_type
         return self
 
     def add_list(self, variables):
@@ -16,15 +16,18 @@ class VarsContext:
             self.add_var(n, s)
 
     def get_var(self, name):
-        if name in self.var_sort:
-            return self.var_sort[name].get_z3_var(name)
+        if name in self.variables:
+            return self.variables[name]
 
         if self.parent_context is not None:
             return self.parent_context.get_var(name)
         raise Exception("Var %s not found" % name)
 
+    def get_var_z3(self, name):
+        return self.get_var(name).as_z3_var(name)
+
     def get_var_list(self):
-        return list(map(self.get_var, self.var_sort.keys()))
+        return list(map(self.get_var_z3, self.variables.keys()))
 
     def set_parent_context(self, ctx):
         self.parent_context = ctx

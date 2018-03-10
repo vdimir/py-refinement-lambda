@@ -8,7 +8,7 @@ import pyparsing as prs
 
 
 DEFINE_LAMBDA_MACROS_NAME = 'define_'
-RETURN_VARIABLE_NAME = 'ret'
+RETURN_VARIABLE_NAME_MACRO = 'ret'
 
 
 def get_lambdas_model(program_ast) -> typing.List[model.LambdaModel]:
@@ -21,7 +21,7 @@ class LambdaParser:
     def __init__(self):
         pass
 
-    def parse_lambda_node(self, node) -> model.LambdaModel:
+    def parse_lambda_node(self, node, func_name) -> model.LambdaModel:
         type_def, pre_cond, post_cond, func = node.args
         arg_names = list(map(lambda a: a.arg, func.args.args))
 
@@ -30,9 +30,13 @@ class LambdaParser:
         assert len(arg_types) == len(arg_names) + 1, (
             "Function annotation mismatch (at: %d)" % node.lineno)
 
-        arg_names.append(RETURN_VARIABLE_NAME)
         var_ctx = model.VarsContext()
-        var_ctx.add_list(zip(arg_names, arg_types))
+        for var_name, variable in zip(arg_names, arg_types):
+            variable.set_name("{}${}".format(func_name, var_name))
+            var_ctx.add_var(var_name, variable)
+
+        arg_types[-1].set_name("{}${}".format(func_name, RETURN_VARIABLE_NAME_MACRO))
+        var_ctx.add_var(RETURN_VARIABLE_NAME_MACRO, arg_types[-1])
 
         expr_parser = ExprParser(var_ctx, dsl=True)
         pre_cond = expr_parser.parse_expr_str(pre_cond.s)
@@ -43,8 +47,8 @@ class LambdaParser:
 
         lambda_model = model.LambdaModel(args=var_ctx,
                                          body=func_body_model,
-                                         ret_var_name=RETURN_VARIABLE_NAME)
-
+                                         ret_var_name=RETURN_VARIABLE_NAME_MACRO)
+        lambda_model.set_name(func_name)
         lambda_model.add_pre_cond(pre_cond)
         lambda_model.add_post_cond(post_cond)
         lambda_model.src_data['lineno'] = node.lineno
@@ -86,30 +90,31 @@ class LambdaVisitor(ast.NodeVisitor):
         self.result = []
 
     def visit_Assign(self, node: ast.Assign):
-        if not isinstance(node.value, ast.Call):
+        if not is_assign_lambda_def(node):
             return
 
-        lambda_model = self.visit_Call(node.value)
-        if lambda_model is None:
-            return
+        if len(node.value.args) != 4:
+            raise Exception("Wrong number of args!")
 
         if len(node.targets) != 1 or not isinstance(node.targets[0], ast.Name):
             raise Exception("Wrong assign!")
 
-        lambda_model.set_name(node.targets[0].id)
-        self.result.append(lambda_model)
-
-    def visit_Call(self, e) -> typing.Optional[model.LambdaModel]:
-        if not isinstance(e.func, ast.Name):
-            return
-
-        if e.func.id != DEFINE_LAMBDA_MACROS_NAME:
-            return
-
-        if len(e.args) != 4:
-            raise Exception("Wrong number of args!")
+        target_func_name = node.targets[0].id
 
         prs = LambdaParser()
-        lambda_model = prs.parse_lambda_node(e)
-        return lambda_model
+        lambda_model = prs.parse_lambda_node(node.value, target_func_name)
 
+        self.result.append(lambda_model)
+
+
+def is_assign_lambda_def(node):
+    if not isinstance(node.value, ast.Call):
+        return False
+
+    if not isinstance(node.value.func, ast.Name):
+        return False
+
+    if node.value.func.id != DEFINE_LAMBDA_MACROS_NAME:
+        return False
+
+    return True

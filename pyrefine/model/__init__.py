@@ -1,4 +1,4 @@
 from .lambda_model import LambdaModel
-from .call_model import CallModel
+from .invocation_model import InvocationModel
 from .vars_context import VarsContext
 from . import types

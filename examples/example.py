@@ -22,7 +22,6 @@ def main():
                                    'ret > 1',
                                    lambda x, y: x*y)
 
-
     example_implication = define_('int -> int -> int',
                                    '(x > 0) >> (y > 0)',
                                    'ret > 0',
@@ -43,12 +42,16 @@ def main():
                            lambda a, i: (a[i], a[(i + 1) % 3]))
 
     x = example_simple2(5, 7)
+
     y = example_simple2(example_simple1(2), 1)
-
+    #
     z = example_simple1(2)
-    w = example_simple2(z, z)
+    w = example_simple2(2 * z, z)
 
-    a = example_fun(5, example_simple1)
+    foo = example_simple1(1)
+    foo = 5
+    #
+    # a = example_fun(5, example_simple1)
 
 
 if __name__ == '__main__':
