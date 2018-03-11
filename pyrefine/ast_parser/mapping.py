@@ -29,7 +29,7 @@ _type_string_to_model = {
 }
 
 
-def type_str_to_model(s):
+def type_str_to_model(s) -> types.ModelVar:
     return _type_string_to_model[s]()
 
 

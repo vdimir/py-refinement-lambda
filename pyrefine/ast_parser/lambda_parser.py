@@ -1,17 +1,20 @@
 
 import ast
-from .mapping import type_str_to_model
-from .expr_parser import ExprParser
-from .. import model
-import typing
-import pyparsing as prs
 
+from pyrefine.model import ExpressionModel, VarsContext
+
+from .mapping import type_str_to_model
+from .expr_parser import str_to_ast
+from .. import model
+from typing import List
+import pyparsing as prs
+from collections import OrderedDict as odict
 
 DEFINE_LAMBDA_MACROS_NAME = 'define_'
-RETURN_VARIABLE_NAME_MACRO = 'ret'
+RET_VAR_NAME_MACRO = 'ret'
 
 
-def get_lambdas_model(program_ast) -> typing.List[model.LambdaModel]:
+def get_lambdas_model(program_ast) -> List[model.LambdaModel]:
     lambda_visitor = LambdaVisitor()
     lambda_visitor.visit(program_ast)
     return lambda_visitor.result
@@ -30,31 +33,19 @@ class LambdaParser:
         assert len(arg_types) == len(arg_names) + 1, (
             "Function annotation mismatch (at: %d)" % node.lineno)
 
-        var_ctx = model.VarsContext()
-        for var_name, variable in zip(arg_names, arg_types):
-            variable.set_name("{}${}".format(func_name, var_name))
-            var_ctx.add_var(var_name, variable)
+        arg_names.append(RET_VAR_NAME_MACRO)
 
-        arg_types[-1].set_name("{}${}".format(func_name, RETURN_VARIABLE_NAME_MACRO))
-        var_ctx.add_var(RETURN_VARIABLE_NAME_MACRO, arg_types[-1])
+        args = VarsContext(zip(arg_names, arg_types))
+        lambda_model = model.LambdaModel(name=func_name,
+                                         args=args,
+                                         body=ExpressionModel(func.body))
 
-        expr_parser = ExprParser(var_ctx, dsl=True)
-        pre_cond = expr_parser.parse_expr_str(pre_cond.s)
-        post_cond = expr_parser.parse_expr_str(post_cond.s)
-
-        expr_parser = ExprParser(var_ctx, dsl=False)
-        func_body_model = expr_parser.parse_expr_node(func.body)
-
-        lambda_model = model.LambdaModel(args=var_ctx,
-                                         body=func_body_model,
-                                         ret_var_name=RETURN_VARIABLE_NAME_MACRO)
-        lambda_model.set_name(func_name)
-        lambda_model.add_pre_cond(pre_cond)
-        lambda_model.add_post_cond(post_cond)
+        lambda_model.add_pre_cond(str_to_ast(pre_cond.s))
+        lambda_model.add_post_cond(str_to_ast(post_cond.s))
         lambda_model.src_data['lineno'] = node.lineno
         return lambda_model
 
-    def parse_type_def_str(self, typedef_str: str):
+    def parse_type_def_str(self, typedef_str: str) -> List[model.types.ModelVar]:
         """Parse function type annotation."""
 
         lpar = prs.Literal('(').suppress()
@@ -74,11 +65,10 @@ class LambdaParser:
                 elif isinstance(t, list):
                     args = unroll(t)
                     func = model.types.FuncVar()
-                    for a in args:
-                        func.add_arg(a)
+                    [func.add_arg(a) for a in args]
                     yield func
                 else:
-                    assert False
+                    assert False, "Unreachable code"
 
         return list(unroll(res))
 

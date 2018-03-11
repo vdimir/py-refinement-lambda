@@ -1,17 +1,22 @@
 import z3
+from pyrefine.model import LambdaModel
+from pyrefine.model.vars_context import VarsZ3Context
+from pyrefine.ast_parser.expr_parser import expr_model_to_z3
 
-from ..ast_parser.lambda_parser import get_lambdas_model
 
-
-def check_lambda_model(lambda_model):
+def check_lambda_model(lambda_model: LambdaModel):
     solver = z3.Solver()
-    solver.add(lambda_model.pre_cond)
+    var_ctx = lambda_model.variables.as_z3_ctx()
 
-    ret_var_name = lambda_model.ret_var_name
-    ret_var_bind = lambda_model.variables.get_var_z3(ret_var_name) == lambda_model.body
+    pre_z3_cond = expr_model_to_z3(lambda_model.pre_cond, var_ctx, dsl=True)
+    post_z3_cond = expr_model_to_z3(lambda_model.post_cond, var_ctx, dsl=True)
+    solver.add(pre_z3_cond)
+
+    ret_var = var_ctx.get_z3_var_list()[-1]
+    ret_var_bind = ret_var == expr_model_to_z3(lambda_model.body, var_ctx, dsl=False)
 
     solver.add(ret_var_bind)
-    solver.add(z3.Not(lambda_model.post_cond))
+    solver.add(z3.Not(post_z3_cond))
     check = solver.check()
 
     if check == z3.unsat:

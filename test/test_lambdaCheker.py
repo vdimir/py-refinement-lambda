@@ -12,7 +12,7 @@ def main():
 
     example_simple2 = define_('int -> int -> int',
                               'a >= 0 and b >= 0',
-                              'ret >= 0 and (ret <= a or ret <= b)',
+                              'ret >= 0 and (ret <= a or ret <= b) and (a <= ret or b <= ret)',
                               lambda a, b: (a + b) // 2)
 
     example_chain_comp = define_('int -> bool',
@@ -24,6 +24,11 @@ def main():
                                   'x > 0 and y > 0',
                                   'ret > 1',
                                   lambda x, y : x*y)
+
+    example_diff_sign = define_('int -> int -> int',
+                                'a*b <= 0',
+                                'ret > 0',
+                                lambda a, b: a if a > b else b)
 
     x = example_simple2(5, 7)
     x = example_simple2(example_simple1(2), 1)
@@ -47,7 +52,7 @@ class TestLambdaChecker(unittest.TestCase):
         models = dict(map(lambda m: (m.func_name, m), models))
 
         all_names = ['example_simple1', 'example_simple2',
-                     'example_chain_comp', 'example_simple_wrong']
+                     'example_chain_comp', 'example_diff_sign', 'example_simple_wrong']
         self.assertSetEqual(set(all_names), set(models.keys()))
 
         for n in ['example_simple1', 'example_simple2', 'example_chain_comp']:

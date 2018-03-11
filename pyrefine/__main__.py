@@ -4,8 +4,9 @@
 import sys
 import ast
 
-from .ast_parser.lambda_parser import get_lambdas_model
-from .checker import check_lambda_model
+from .ast_parser import get_invocations_model, get_lambdas_model
+from .checker import check_lambda_model, check_invocation_model
+from operator import attrgetter
 
 
 def main():
@@ -16,11 +17,20 @@ def main():
 
     program_ast = ast.parse(s, fname)
 
-    models = get_lambdas_model(program_ast)
-    for m in models:
-        res = check_lambda_model(m)
-        print(res)
-        print(m)
+    lambda_models = get_lambdas_model(program_ast)
+    lambda_models = dict(map(lambda m: (m.func_name, m), lambda_models))
+    for lam_model in lambda_models.values():
+        is_sat = check_lambda_model(lam_model)
+        if is_sat:
+            print(lam_model.func_name)
+            print(is_sat)
+            assert not is_sat
+    invocations = get_invocations_model(program_ast, lambda_models)
+
+    for m in invocations:
+        print(m[0])
+        res = check_invocation_model(m[1], lambda_models)
+        print("SAFE." if res is None else "UNSAFE!")
         print()
         # if res is not None:
         #     print("UNSAFE!")
