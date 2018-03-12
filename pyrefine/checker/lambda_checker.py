@@ -1,6 +1,8 @@
 import z3
+
+from pyrefine.ast_parser import get_lambdas_model
+from pyrefine.checker.checker_exception import LambdaDefinitionException
 from pyrefine.model import LambdaModel
-from pyrefine.model.vars_context import VarsZ3Context
 from pyrefine.ast_parser.expr_parser import expr_model_to_z3
 
 
@@ -24,7 +26,10 @@ def check_lambda_model(lambda_model: LambdaModel):
     return solver.model()
 
 
-# def check_all_lambdas(program_ast):
-#     models = get_lambdas_model(program_ast)
-#     for m in models:
-#         check_lambda_model(m)
+def check_all_lambdas(program_ast):
+    models = get_lambdas_model(program_ast)
+    for m in models:
+        res = check_lambda_model(m)
+        if res is not None:
+            raise LambdaDefinitionException(m.src_data, m.func_name)
+    return models

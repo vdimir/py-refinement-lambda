@@ -5,10 +5,12 @@ from .. import model
 from pyrefine.model import ExpressionModel
 from pyrefine.ast_parser.expr_parser import expr_model_to_z3
 
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 
-def get_invocations_model(program_ast, defined_functions) -> List[Tuple[str, model.InvocationModel]]:
+def get_invocations_model(program_ast,
+                          defined_functions: Dict[str, model.LambdaModel]) \
+        -> List[Tuple[str, model.InvocationModel]]:
     invoke_visitor = TopLevelInvokeVisitor()
     invoke_visitor.defined_functions = defined_functions
     invoke_visitor.visit(program_ast)
