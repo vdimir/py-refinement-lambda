@@ -2,6 +2,7 @@ import ast
 import uuid
 from collections import deque
 
+from pyrefine.exceptions import ParseException
 from pyrefine.model import InvocationModel
 from .mapping import operator_ast_to_model
 from ..model import operators
@@ -10,8 +11,12 @@ from .mapping import type_str_to_model
 
 
 def str_to_ast(expr_str: str) -> ExpressionModel:
-    expr_ast = ast.parse(expr_str).body
-    assert len(expr_ast) == 1, "Wrong expr in cond!"
+    exp = ast.parse(expr_str)
+    expr_ast = exp.body
+
+    if not (len(expr_ast) == 1 and isinstance(expr_ast[0], ast.Expr)):
+        raise ParseException(expr_str)
+
     expr_ast = expr_ast[0].value
     return ExpressionModel(expr_ast)
 
@@ -135,6 +140,9 @@ class ExprVisitor(ast.NodeVisitor):
         arg = self.visit_and_pop(node.operand)
         self.push_result(op_func(arg))
 
+    def visit_Assign(self, node):
+        raise Exception("Assign not allowed, use `==` to compare variables")
+
     def generic_visit(self, e):
         print(ast.dump(e))
         raise Exception("Nodes %s not supported" % str(e))
@@ -149,7 +157,6 @@ class ReplaceCallExprVisitor(ExprVisitor):
     def visit_Call(self, e):
         try:
             raise VariableNotFoundException()
-            return super().visit_Call(e)
         except VariableNotFoundException:
             inv_model = InvocationModel(e.func.id)
             for a in e.args:

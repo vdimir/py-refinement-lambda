@@ -21,24 +21,12 @@ def main():
     lambda_models = dict(map(lambda m: (m.func_name, m), lambda_models))
     for lam_model in lambda_models.values():
         is_sat = check_lambda_model(lam_model)
-        if is_sat:
-            print(lam_model.func_name)
-            print(is_sat)
-            assert not is_sat
+        assert not is_sat
     invocations = get_invocations_model(program_ast, lambda_models)
 
     for m in invocations:
-        print(m[0])
-        res = check_invocation_model(m[1], lambda_models)
-        print("SAFE." if res is None else "UNSAFE!")
-        print()
-        # if res is not None:
-        #     print("UNSAFE!")
-        #     print("Wrong function at line: {}\nCounterexample: {}."
-        #           .format(m.src_data['lineno'], res))
-        # else:
-        #     print('SAFE.')
-        # print()
+        is_sat = check_invocation_model(m[1], lambda_models)
+        assert not is_sat
 
 
 if __name__ == '__main__':

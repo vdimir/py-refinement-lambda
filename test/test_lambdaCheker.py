@@ -1,6 +1,8 @@
 import ast
 import unittest
 
+from pyrefine.exceptions import ParseException
+
 from pyrefine.checker import check_lambda_model
 
 from pyrefine.ast_parser.lambda_parser import get_lambdas_model
@@ -42,6 +44,10 @@ if __name__ == '__main__':
 """
 
 
+def _unlines(*lines):
+    return "\n".join(lines)
+
+
 class TestLambdaChecker(unittest.TestCase):
 
     def test_lambda_simple(self):
@@ -80,7 +86,7 @@ class TestLambdaChecker(unittest.TestCase):
                                   'forall_({x : int}, (x > 0) >> (f(x) > 0)) and ~(a > -2)',
                                   'ret > 1',
                                   lambda a, f: f(-a) + 1)""" + \
-                    """\n\nexample_imp = define_('int -> int -> int',
+                  """\n\nexample_imp = define_('int -> int -> int',
                                        '(x > 0) >> (y > 1)',
                                        'ret > x or ret <= 0 ',
                                        lambda x, y: x * y)"""
@@ -92,6 +98,41 @@ class TestLambdaChecker(unittest.TestCase):
 
         self.assertProgramSafe(program)
         self.assertProgramUnSafe(program1_wrong)
+
+    def test_parse_exception(self):
+
+        program = ("ex_imp = define_('bool -> bool -> bool', 'True', 'ret == (a >> b)',"
+                   "lambda a, b: b if a else True)")
+
+        self.assertProgramSafe(program)
+
+        program = ("ex_imp = define_('bool -> bool -> bool', 'True', 'ret = (a >> b)',"
+                   "lambda a, b: b if a else True)")
+
+        with self.assertRaises(ParseException):
+            self.assertProgramSafe(program)
+
+    @unittest.skip
+    def test_outer_lambda_call(self):
+        example1 = """example1 = define_('int -> int -> int', 'a >= b', 'ret >= 0',
+                          lambda a, b: a - b)"""
+        program = _unlines(example1,
+                           """example_lam_outer = define_('int -> int', 'a > 1', 'ret >= 1',
+                              lambda a: example1(a, 1) + 1)""")
+
+        self.assertProgramSafe(program)
+
+        program = _unlines(example1,
+                           """example_lam_outer = define_('int -> int', 'a > 1', 'ret >= 1',
+                              lambda a: example1(a, 1))""")
+
+        self.assertProgramUnSafe(program)
+
+        program = _unlines(example1,
+                           """example_lam_outer = define_('int -> int', 'a > 1', 'ret >= 1',
+                              lambda a: example1(a, 3))""")
+
+        self.assertProgramUnSafe(program)
 
     def assertProgramSafe(self, program):
         program_ast = ast.parse(program, "main.py")

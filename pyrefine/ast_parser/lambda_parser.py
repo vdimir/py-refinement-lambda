@@ -9,6 +9,7 @@ from .. import model
 from typing import List
 import pyparsing as prs
 from collections import OrderedDict as odict
+from pyrefine.exceptions import ParseException
 
 DEFINE_LAMBDA_MACROS_NAME = 'define_'
 RET_VAR_NAME_MACRO = 'ret'
@@ -30,8 +31,9 @@ class LambdaParser:
 
         arg_types = self.parse_type_def_str(type_def.s)
 
-        assert len(arg_types) == len(arg_names) + 1, (
-            "Function annotation mismatch (at: %d)" % node.lineno)
+        if len(arg_types) != len(arg_names) + 1:
+            raise ParseException(reason="Function annotation mismatch (at: %d)"
+                                        % node.lineno)
 
         arg_names.append(RET_VAR_NAME_MACRO)
 

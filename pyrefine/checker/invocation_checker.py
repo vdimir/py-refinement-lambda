@@ -1,6 +1,7 @@
-import uuid
-
 import z3
+
+from pyrefine.exceptions import CheckerException, ErrorCallException
+
 from pyrefine.ast_parser.expr_parser import ReplaceCallExprVisitor, expr_model_to_z3
 from pyrefine.helpers import UniquePrefix
 
@@ -32,7 +33,8 @@ def invocation_model_assertions(invocation_model: InvocationModel,
 
             is_sat = check_invocation_model(substituted_inv, lambda_models)
             if is_sat:
-                raise Exception("model not valid")
+                raise ErrorCallException(substituted_inv.src_data,
+                                         substituted_inv.func_name)
 
             new_ret_var = new_local_context.get_z3_var_list()[-1]
             constraints.append(new_ret_var == var_in_outer_scope)
@@ -77,7 +79,7 @@ def check_invocation_model(invocation_model: InvocationModel,
     try:
         constraints, local_context = invocation_model_assertions(invocation_model, lambda_models,
                                                        global_var_ctx_z3, ret_var_types)
-    except Exception:
+    except CheckerException as e:
         return True
 
     lambda_model = lambda_models[invocation_model.func_name]

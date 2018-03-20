@@ -1,7 +1,7 @@
 import z3
 
 from pyrefine.ast_parser import get_lambdas_model
-from pyrefine.checker.checker_exception import LambdaDefinitionException
+from pyrefine.exceptions import LambdaDefinitionException
 from pyrefine.model import LambdaModel
 from pyrefine.ast_parser.expr_parser import expr_model_to_z3
 

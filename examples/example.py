@@ -9,16 +9,60 @@ def main():
     #                        'a[0] > a[1] and 0 <= i < 3',
     #                        lambda a, i: (a[i], a[(i + 1) % 3]))
 
-    example_simple2 = define_('int -> int', 'True', 'ret > a',
+    example_simple1 = define_('int -> int', 'a >= 0', 'ret > 0',
+                              lambda a: 1 if a == 0 else a * 2)
+
+    example_simple2 = define_('int -> int', 'a > -10', 'ret > -10',
                               lambda a: a + 1)
+
+    example_mean = define_('int -> int -> int',
+                           'True',
+                           '(ret <= a or ret <= b) and (a <= ret or b <= ret)',
+                           lambda a, b: (a + b) // 2)
+
+    example_mean_pos = define_('int -> int -> int',
+                               'a > 0 and b > 0',
+                               '(ret <= a or ret <= b) and (0 <= ret or 0 <= ret)',
+                               lambda a, b: (a + b) // 2)
+
+    example_imp = define_('int -> int -> int',
+                          '(x > 0) >> (y > 1)',
+                          'ret > x or ret <= 0 ',
+                          lambda x, y: x * y)
 
     example_fun = define_('int -> (int -> int) -> int',
                           'forall_({x : int}, f(x) > 0)',
                           'ret > 1',
                           lambda a, f: f(a) + 1)
 
-    a = example_fun(-5, example_simple2)
-    print(a)
+    example_fun_imp = define_('int -> (int -> int) -> int',
+                              'forall_({x : int}, (x > 0) >> (f(x) > 0)) and a < -2',
+                              'ret > 1',
+                              lambda a, f: f(-a) + 1)
+
+    example_diff_sign = define_('int -> int -> int',
+                                'a*b < 0',
+                                'ret > 0',
+                                lambda a, b: a if a > b else b)
+
+    example_simple1 = define_('int -> int', 'True', 'ret > a',
+                              lambda a: a + 1)
+
+    example_simple2 = define_('bool -> bool -> bool', 'True', 'ret == (a >> b)',
+                              lambda a, b: b if a else True)
+
+    y = example_mean_pos(example_simple1(2), 1)
+
+
+    # example_lam_outer = define_('int -> int',
+    #                             '0 < a',
+    #                             'ret > 1',
+    #                             lambda a: example_mean(a, 1))
+    # TODO should be error
+    # a = example_fun(5, example_simple1)
+    # b = example_simple1(example_fun(5, example_simple1))
+    # a_err = example_fun(1, example_simple2)
+
 
 if __name__ == '__main__':
     main()

@@ -82,12 +82,13 @@ class TestLambdaInvoke(unittest.TestCase):
 
         self.assertInvocations(program, {'c': True, 'c_er': False})
 
-    def test_higher_order(self):
-        program = _unlines("a = example_fun(5, example_simple1)",
-                           "b = example_simple1(example_fun(5, example_simple1))",
-                           "err = example_fun(1, example_simple2)")
-
-        self.assertInvocations(program, {'a': True, 'b': True, 'err': False})
+    # @unittest.skip
+    # def test_higher_order(self):
+    #     program = _unlines("a = example_fun(5, example_simple1)",
+    #                        "b = example_simple1(example_fun(5, example_simple1))",
+    #                        "a_err = example_fun(1, example_simple2)")
+    #
+    #     self.assertInvocations(program, {'a': True, 'b': True, 'a_err': False})
 
     def assertInvocations(self, program, expected):
         program_ast = ast.parse(program, "main.py")
