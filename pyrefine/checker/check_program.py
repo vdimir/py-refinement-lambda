@@ -90,8 +90,8 @@ def invocation_model_assertions(invocation_model: InvocationModel,
         constraints += new_constraints
         constraints.append(arg_model == local_context.get_var_z3(local_var_name))
 
-        post_cond, _ = expr_model_to_z3(lambda_model.post_cond, local_context, dsl=True)
-        constraints.append(post_cond)
+    post_cond, _ = expr_model_to_z3(lambda_model.post_cond, local_context, dsl=True)
+    constraints.append(post_cond)
     return constraints, local_context, local_context.get_var_z3(ret_var_name)
 
 
@@ -122,7 +122,14 @@ def check_invocation_model(invocation_model: InvocationModel,
     constraints, local_context, ret_var = result
 
     lambda_model = lambda_models[invocation_model.func_name]
-
+    expected_arg_num = len(lambda_model.args) - 1
+    actual_arg_num = len(invocation_model.args)
+    if expected_arg_num != actual_arg_num:
+        raise ErrorCallException(src_info=invocation_model.src_data,
+                                 name=invocation_model.func_name,
+                                 reason="Wrong number of arguments (expected: "
+                                        "{}, actual: {}".format(expected_arg_num,
+                                                                actual_arg_num))
     pre_cond, _ = expr_model_to_z3(lambda_model.pre_cond, local_context, dsl=True)
 
     s = z3.Solver()
@@ -134,5 +141,6 @@ def check_invocation_model(invocation_model: InvocationModel,
     s.add(z3.Not(pre_cond))
     check = s.check()
     if check != z3.unsat:
+        print(s.model())
         raise ErrorCallException(name=invocation_model.func_name,
                                  src_info=invocation_model.src_data)

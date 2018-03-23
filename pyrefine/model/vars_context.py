@@ -49,10 +49,3 @@ class VarsContext:
     def __str__(self):
         return "%s(%r)" % (self.__class__.__name__, self.__dict__)
 
-
-class VariableNotFoundException(Exception):
-    def __init__(self, var_name):
-        self.var_name = var_name
-
-    def __str__(self):
-        return "Variable %s not found" % self.var_name

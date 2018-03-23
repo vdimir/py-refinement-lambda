@@ -11,9 +11,12 @@ def main():
 
     example1 = define_('int -> int -> int', 'a >= b', 'ret >= 0',
                        lambda a, b: a - b)
-    #
+
+    example_const = define_('int', 'True', 'ret == 666',
+                            lambda: 666)
+
     example_lam_outer = define_('int -> int', 'a > 1', 'ret >= 1',
-                                lambda a: example1(a-1, 1) + 1)
+                                lambda a: example1(a+example_const(), 1) + 1)
 
     example_simple1 = define_('int -> int', 'a >= 0', 'ret > 0',
                               lambda a: 1 if a == 0 else a * 2)

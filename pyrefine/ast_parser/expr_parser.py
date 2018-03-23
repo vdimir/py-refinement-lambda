@@ -8,7 +8,7 @@ from pyrefine.exceptions import ParseException
 from pyrefine.model import InvocationModel
 from .mapping import operator_ast_to_model
 from ..model import operators
-from ..model import ExpressionModel, VarsContext, VariableNotFoundException
+from ..model import ExpressionModel, VarsContext
 from .mapping import type_str_to_model
 
 
