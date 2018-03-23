@@ -2,7 +2,6 @@ import z3
 
 
 class ModelVar:
-
     def as_z3_var(self, name):
         raise NotImplementedError("Abstract method call.")
 
@@ -10,33 +9,17 @@ class ModelVar:
         raise NotImplementedError("Abstract method call.")
 
 
-class SortConst(ModelVar):
-
+class SimpleConst(ModelVar):
     def as_z3_var(self, name):
         return z3.Const(name, self.get_sort())
 
 
-class CustomConst(SortConst):
-
-    def __init__(self, sort):
-        self._sort = sort
-
-    def get_sort(self):
-        return self._sort
-
-
-class SimpleConst(SortConst):
-    pass
-
-
 class IntVar(SimpleConst):
-
     def get_sort(self):
         return z3.IntSort()
 
 
 class BoolVar(SimpleConst):
-
     def get_sort(self):
         return z3.BoolSort()
 

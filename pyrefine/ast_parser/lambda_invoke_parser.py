@@ -3,7 +3,6 @@ import ast
 
 from .. import model
 from pyrefine.model import ExpressionModel
-from pyrefine.ast_parser.expr_parser import expr_model_to_z3
 
 from typing import List, Tuple, Dict
 
@@ -48,17 +47,3 @@ class TopLevelInvokeVisitor(ast.NodeVisitor):
             call_model.add_arg(ExpressionModel(arg_ast))
         return call_model
 
-
-# class FuncInvokeVisitor(ast.NodeVisitor):
-#     def __init__(self):
-#         pass
-#
-#     def generic_visit(self, node):
-#         return node
-#
-#     def visit_Call(self, node):
-#         call_model = model.InvocationModel(func_name=node.func.id)
-#         for arg_ast in node.args:
-#             call_model.add_arg(self.visit(arg_ast))
-#
-#         return call_model

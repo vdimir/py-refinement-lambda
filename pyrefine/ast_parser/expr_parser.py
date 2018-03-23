@@ -2,11 +2,13 @@ import ast
 import uuid
 from collections import deque
 
+from pyrefine.helpers import UniquePrefix
+
 from pyrefine.exceptions import ParseException
 from pyrefine.model import InvocationModel
 from .mapping import operator_ast_to_model
 from ..model import operators
-from ..model import VarsZ3Context, ExpressionModel, VarsContext, VariableNotFoundException
+from ..model import ExpressionModel, VarsContext, VariableNotFoundException
 from .mapping import type_str_to_model
 
 
@@ -21,36 +23,20 @@ def str_to_ast(expr_str: str) -> ExpressionModel:
     return ExpressionModel(expr_ast)
 
 
-def expr_model_to_z3(expr_model: ExpressionModel, var_ctx: VarsZ3Context, dsl: bool):
+def expr_model_to_z3(expr_model: ExpressionModel,
+                     var_ctx: VarsContext,
+                     dsl: bool):
     expr_visitor = ExprVisitor(var_ctx, dsl=dsl)
     expr_visitor.visit(expr_model.expr_ast)
-    return expr_visitor.pop_result()
-
-
-class ExprParser:
-    def __init__(self, var_ctx: VarsZ3Context, dsl=False):
-        self.dsl_enabled = dsl
-        self.var_ctx = var_ctx
-
-    def parse_expr_node(self, expr_node):
-        expr_visitor = ExprVisitor(self.var_ctx, dsl=self.dsl_enabled)
-        expr_visitor.visit(expr_node)
-        assert len(expr_visitor.res) == 1
-        return expr_visitor.pop_result()
-
-    def parse_expr_str(self, expr_str):
-        expr_ast = str_to_ast(expr_str)
-        expr_visitor = ExprVisitor(self.var_ctx, dsl=self.dsl_enabled)
-        expr_visitor.visit(expr_ast)
-        assert len(expr_visitor.res) == 1
-        return expr_visitor.pop_result()
+    return expr_visitor.pop_result(), expr_visitor.substitutions
 
 
 class ExprVisitor(ast.NodeVisitor):
-    def __init__(self, var_ctx: VarsZ3Context, dsl=False):
+    def __init__(self, var_ctx, dsl=False):
         self.dsl_enabled = dsl
         self.res = deque()
-        self.context = var_ctx
+        self.var_ctx = var_ctx
+        self.substitutions = {}
 
     def visit_and_pop(self, expr):
         self.visit(expr)
@@ -61,11 +47,6 @@ class ExprVisitor(ast.NodeVisitor):
 
     def pop_result(self):
         return self.res.pop()
-
-    def get_final_result(self):
-        res = self.pop_result()
-        assert len(self.res) == 0
-        return res
 
     # visitor methods:
 
@@ -90,7 +71,7 @@ class ExprVisitor(ast.NodeVisitor):
         self.push_result(zexp)
 
     def visit_Name(self, e):
-        var = self.context.get_var_z3(e.id)
+        var = self.var_ctx.get_var_z3(e.id)
         self.push_result(var)
 
     def visit_Num(self, e):
@@ -122,18 +103,23 @@ class ExprVisitor(ast.NodeVisitor):
 
     def visit_Call(self, e):
         if not isinstance(e.func, ast.Name):
-            assert False
+            raise ParseException("Only named call allowed!")
 
-        if self.dsl_enabled and e.func.id == 'forall_':
-            assert len(e.args) == 2, "Forall mut contain 2 args!"
-            res = _parse_forall(e.args[0], e.args[1], self.context)
-            self.push_result(res)
-            return
+        # if self.dsl_enabled and e.func.id == 'forall_':
+        #     assert len(e.args) == 2, "Forall mut contain 2 args!"
+        #     res = _parse_forall(e.args[0], e.args[1], self.var_ctx)
+        #     self.push_result(res)
+        #     return
 
-        func_type = self.context.get_var_z3(e.func.id)
+        unique_name = UniquePrefix(custom_prefix='call')(e.func.id)
+        ret_var = self.var_ctx.functions.get(e.func.id)[0].as_z3_var(unique_name)
 
-        args = map(self.visit_and_pop, e.args)
-        self.push_result(func_type(*args))
+        inv_model = InvocationModel(e.func.id)
+        for a in e.args:
+            inv_model.add_arg(ExpressionModel(a))
+
+        self.substitutions[unique_name] = (inv_model, ret_var)
+        self.push_result(ret_var)
 
     def visit_UnaryOp(self, node):
         op_func = operator_ast_to_model(node.op, self.dsl_enabled)
@@ -148,28 +134,7 @@ class ExprVisitor(ast.NodeVisitor):
         raise Exception("Nodes %s not supported" % str(e))
 
 
-class ReplaceCallExprVisitor(ExprVisitor):
-    def __init__(self, var_ctx: VarsZ3Context, dsl: bool):
-        super().__init__(var_ctx, dsl=dsl)
-        self.substitutions = {}
-        self.func_ret_types = {}
-
-    def visit_Call(self, e):
-        try:
-            raise VariableNotFoundException()
-        except VariableNotFoundException:
-            inv_model = InvocationModel(e.func.id)
-            for a in e.args:
-                inv_model.add_arg(ExpressionModel(a))
-            subst_name = "$uid$" + str(uuid.uuid4().hex[:8])
-            assert subst_name not in self.substitutions
-            ret_var = self.func_ret_types[e.func.id].as_z3_var(subst_name)
-
-            self.substitutions[subst_name] = (inv_model, ret_var)
-            self.push_result(ret_var)
-
-
-def _parse_forall(binded_vars, body, var_ctx: VarsZ3Context):
+def _parse_forall(binded_vars, body, var_ctx):
     assert isinstance(binded_vars, ast.Dict), "Forall parsing error!"
 
     binded_vars_ctx = VarsContext()

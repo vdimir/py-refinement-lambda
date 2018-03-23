@@ -1,5 +1,3 @@
-from .lambda_checker import *
-from .invocation_checker import *
-
+from .check_program import *
 
 

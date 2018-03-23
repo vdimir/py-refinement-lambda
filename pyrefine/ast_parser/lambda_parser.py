@@ -37,7 +37,7 @@ class LambdaParser:
 
         arg_names.append(RET_VAR_NAME_MACRO)
 
-        args = VarsContext(zip(arg_names, arg_types))
+        args = odict(zip(arg_names, arg_types))
         lambda_model = model.LambdaModel(name=func_name,
                                          args=args,
                                          body=ExpressionModel(func.body))

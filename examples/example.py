@@ -9,6 +9,12 @@ def main():
     #                        'a[0] > a[1] and 0 <= i < 3',
     #                        lambda a, i: (a[i], a[(i + 1) % 3]))
 
+    example1 = define_('int -> int -> int', 'a >= b', 'ret >= 0',
+                       lambda a, b: a - b)
+    #
+    example_lam_outer = define_('int -> int', 'a > 1', 'ret >= 1',
+                                lambda a: example1(a-1, 1) + 1)
+
     example_simple1 = define_('int -> int', 'a >= 0', 'ret > 0',
                               lambda a: 1 if a == 0 else a * 2)
 
@@ -30,34 +36,31 @@ def main():
                           'ret > x or ret <= 0 ',
                           lambda x, y: x * y)
 
-    example_fun = define_('int -> (int -> int) -> int',
-                          'forall_({x : int}, f(x) > 0)',
-                          'ret > 1',
-                          lambda a, f: f(a) + 1)
+    # example_fun = define_('int -> (int -> int) -> int',
+    #                       'forall_({x : int}, f(x) > 0)',
+    #                       'ret > 1',
+    #                       lambda a, f: f(a) + 1)
 
-    example_fun_imp = define_('int -> (int -> int) -> int',
-                              'forall_({x : int}, (x > 0) >> (f(x) > 0)) and a < -2',
-                              'ret > 1',
-                              lambda a, f: f(-a) + 1)
+    # example_fun_imp = define_('int -> (int -> int) -> int',
+    #                           'forall_({x : int}, (x > 0) >> (f(x) > 0)) and a < -2',
+    #                           'ret > 1',
+    #                           lambda a, f: f(-a) + 1)
 
     example_diff_sign = define_('int -> int -> int',
                                 'a*b < 0',
                                 'ret > 0',
                                 lambda a, b: a if a > b else b)
 
-    example_simple1 = define_('int -> int', 'True', 'ret > a',
+    example_simple3 = define_('int -> int', 'True', 'ret > a',
                               lambda a: a + 1)
 
-    example_simple2 = define_('bool -> bool -> bool', 'True', 'ret == (a >> b)',
+    example_simple4 = define_('bool -> bool -> bool', 'True', 'ret == (a >> b)',
                               lambda a, b: b if a else True)
 
+
     y = example_mean_pos(example_simple1(2), 1)
+    c = example_diff_sign(example_mean(-3, -1), example_mean(1, example_simple1(1) + 5))
 
-
-    # example_lam_outer = define_('int -> int',
-    #                             '0 < a',
-    #                             'ret > 1',
-    #                             lambda a: example_mean(a, 1))
     # TODO should be error
     # a = example_fun(5, example_simple1)
     # b = example_simple1(example_fun(5, example_simple1))

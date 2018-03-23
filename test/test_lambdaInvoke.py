@@ -1,8 +1,12 @@
 import ast
 import unittest
 
-from pyrefine.ast_parser import get_invocations_model
-from pyrefine.checker import check_all_lambdas, check_invocation_model
+from pyrefine.exceptions import ErrorCallException
+
+from pyrefine.model import VarsContext
+
+from pyrefine.ast_parser import get_invocations_model, get_lambdas_model
+from pyrefine.checker import check_invocation_model, check_program, get_checked_lambda_definitions
 
 lambda_def_program = r"""
 from pyrefine import *
@@ -27,16 +31,6 @@ example_imp = define_('int -> int -> int',
                       'ret > x or ret <= 0 ',
                       lambda x, y: x * y)
 
-example_fun = define_('int -> (int -> int) -> int',
-                      'forall_({x : int}, f(x) > 0)',
-                      'ret > 1',
-                      lambda a, f: f(a) + 1)
-
-example_fun_imp = define_('int -> (int -> int) -> int',
-                          'forall_({x : int}, (x > 0) >> (f(x) > 0)) and a < -2',
-                          'ret > 1',
-                          lambda a, f: f(-a) + 1)
-
 example_diff_sign = define_('int -> int -> int',
                             'a*b < 0',
                             'ret > 0',
@@ -53,9 +47,9 @@ class TestLambdaInvoke(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         program_ast = ast.parse(lambda_def_program, "main.py")
-        lambda_models = check_all_lambdas(program_ast)
-
-        cls.lambda_models = dict(map(lambda m: (m.func_name, m), lambda_models))
+        global_ctx, lambda_models = get_checked_lambda_definitions(program_ast)
+        cls.lambda_models = lambda_models
+        cls.global_ctx = global_ctx
 
     def test_invokeCheck(self):
         simple_call = _unlines("x = example_mean_pos(5, 7)",
@@ -82,23 +76,17 @@ class TestLambdaInvoke(unittest.TestCase):
 
         self.assertInvocations(program, {'c': True, 'c_er': False})
 
-    # @unittest.skip
-    # def test_higher_order(self):
-    #     program = _unlines("a = example_fun(5, example_simple1)",
-    #                        "b = example_simple1(example_fun(5, example_simple1))",
-    #                        "a_err = example_fun(1, example_simple2)")
-    #
-    #     self.assertInvocations(program, {'a': True, 'b': True, 'a_err': False})
-
     def assertInvocations(self, program, expected):
         program_ast = ast.parse(program, "main.py")
         invocations = get_invocations_model(program_ast, self.lambda_models)
         invocations = dict(invocations)
         self.assertSequenceEqual(invocations.keys(), expected.keys())
         for name, model in invocations.items():
-            counterexample = check_invocation_model(model, self.lambda_models)
-            is_valid = counterexample is None
-            self.assertEqual(is_valid, expected[name])
+            if expected[name]:
+                check_invocation_model(model, self.lambda_models, self.global_ctx, [])
+            else:
+                with self.assertRaises(ErrorCallException):
+                    check_invocation_model(model, self.lambda_models, self.global_ctx, [])
 
 
 if __name__ == '__main__':
