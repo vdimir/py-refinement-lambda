@@ -2,6 +2,8 @@
 
 from pyrefine import *
 
+example_global = define_('int -> int -> int', 'a > 0', 'ret > b',
+                   lambda a, b: a + b)
 
 def main():
 
@@ -10,7 +12,7 @@ def main():
     #                        lambda a, i: (a[i], a[(i + 1) % 3]))
 
     example1 = define_('int -> int -> int', 'a >= b', 'ret >= 0',
-                       lambda a, b: a - b)
+                       lambda a, b: example_global(a - b + 1, 1))
 
     example_const = define_('int', 'True', 'ret == 666',
                             lambda: 666)

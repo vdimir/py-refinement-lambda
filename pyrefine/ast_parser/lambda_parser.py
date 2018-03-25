@@ -15,7 +15,7 @@ DEFINE_LAMBDA_MACROS_NAME = 'define_'
 RET_VAR_NAME_MACRO = 'ret'
 
 
-def get_lambdas_model(program_ast) -> List[model.LambdaModel]:
+def get_lambdas_model(program_ast) -> odict:
     lambda_visitor = LambdaVisitor()
     lambda_visitor.visit(program_ast)
     lambda_models = lambda_visitor.result

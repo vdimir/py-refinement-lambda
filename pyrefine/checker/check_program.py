@@ -20,22 +20,33 @@ def check_program(program):
         program = ast.parse(program)
     scopes = get_expr_to_check(program)
 
-    # global_ctx, lambda_models, global_constraints = check_expr_list(scopes['_module'])
+    global_ctx = VarsContext()
+    lambda_models = odict()
+    global_constraints = []
+
+    check_expr_list(scopes['_module'], global_ctx, lambda_models, global_constraints)
+
     for scope_name, expr_list in scopes.items():
-        global_ctx = VarsContext()
-        lambda_models = odict()
-        global_constraints = []
-        for expr in expr_list:
-            res = check_generic_expr(expr, global_ctx, lambda_models, global_constraints)
-            # new_global_ctx, new_lambda_models, new_global_constraints = res
+        if scope_name == '_module':
+            continue
+
+        scope_global_ctx = VarsContext(parent_ctx=global_ctx)
+        scope_lambda_models = lambda_models.copy()
+        scope_global_constraints = global_constraints.copy()
+        check_expr_list(expr_list,
+                        scope_global_ctx,
+                        scope_lambda_models,
+                        scope_global_constraints)
+
+
+def check_expr_list(expr_list, global_ctx, lambda_models, global_constraints):
+    for expr in expr_list:
+        check_generic_expr(expr, global_ctx, lambda_models, global_constraints)
 
 
 def check_generic_expr(program, global_ctx, lambda_models, global_constraints):
-    new_global_ctx, new_lambda_models = get_checked_lambda_definitions(program,
-                                                                       global_ctx,
-                                                                       lambda_models)
-    merge_dict(lambda_models, new_lambda_models)
-    global_ctx.merge(new_global_ctx)
+    get_checked_lambda_definitions(program, global_ctx, lambda_models)
+
     top_level_assign = get_assign_expr_model(program, defined_functions=lambda_models)
 
     for target_name, ret_type, var_value in top_level_assign:
