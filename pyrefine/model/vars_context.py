@@ -1,5 +1,6 @@
 from collections import OrderedDict as odict
 from pyrefine.exceptions import VariableNotFoundException
+from pyrefine.helpers import merge_dict
 from pyrefine.model.types import ModelVar
 
 
@@ -22,9 +23,14 @@ class ScopedContext:
             return self.parent.get(name)
         return self.values[name], self.scope_const
 
+    def append(self, new_ctx):
+        assert new_ctx.parent is None
+        assert new_ctx.scope_const is None
+        merge_dict(self.values, new_ctx.values)
+
 
 class VarsContext:
-    def __init__(self, variables=None, parent_ctx=None, name_map=lambda x: x):
+    def __init__(self, variables=None, parent_ctx=None, name_map=None):
         if parent_ctx is not None:
             vars_parent = parent_ctx.variables
             func_parent = parent_ctx.functions
@@ -42,8 +48,15 @@ class VarsContext:
 
     def get_var_z3(self, name):
         variable, name_map = self.variables.get(name)
-        target_name = name_map(name)
+        if name_map is not None:
+            target_name = name_map(name)
+        else:
+            target_name = name
         return variable.as_z3_var(target_name)
+
+    def merge(self, new_ctx):
+        self.variables.append(new_ctx.variables)
+        self.functions.append(new_ctx.functions)
 
     def __str__(self):
         return "%s(%r)" % (self.__class__.__name__, self.__dict__)

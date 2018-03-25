@@ -16,3 +16,13 @@ class SimplePrefix:
 
     def __call__(self, s: str):
         return "${}${}".format(self.custom_prefix, s)
+
+
+def merge_dict(dict1, dict2):
+    for k, v in dict2.items():
+        if k in dict1:
+            if dict1[k] == v:
+                continue
+            raise Exception("Key in merged dict should not intersect.")
+        dict1[k] = v
+    return dict1

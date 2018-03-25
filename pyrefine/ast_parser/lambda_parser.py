@@ -18,7 +18,9 @@ RET_VAR_NAME_MACRO = 'ret'
 def get_lambdas_model(program_ast) -> List[model.LambdaModel]:
     lambda_visitor = LambdaVisitor()
     lambda_visitor.visit(program_ast)
-    return lambda_visitor.result
+    lambda_models = lambda_visitor.result
+    lambda_models_dict = odict(map(lambda m: (m.func_name, m), lambda_models))
+    return lambda_models_dict
 
 
 class LambdaParser:

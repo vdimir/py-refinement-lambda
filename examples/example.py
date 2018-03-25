@@ -58,10 +58,10 @@ def main():
 
     y1 = c_('int', example1(example_simple1(zero), -y))
 
-    z = example_mean_pos(y1, 1) + 1
+    z = c_('int', example_mean_pos(1 if y1 <= 0 else y1, 1) + 1)
 
-    # example_simple_global_var = define_('int ->  int', 'a > 0', 'ret > 0',
-    #                             lambda a: a if a > 0 else z)
+    example_simple_global_var = define_('int -> int', 'a > 0', 'ret > 0',
+                                lambda a: a if a > 0 else z)
 
 
 if __name__ == '__main__':

@@ -55,8 +55,6 @@ class TestLambdaChecker(unittest.TestCase):
 
         models = get_lambdas_model(program_ast)
 
-        models = dict(map(lambda m: (m.func_name, m), models))
-
         all_names = ['example_simple1', 'example_simple2',
                      'example_chain_comp', 'example_diff_sign', 'example_simple_wrong']
         self.assertSetEqual(set(all_names), set(models.keys()))

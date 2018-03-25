@@ -3,10 +3,11 @@ import ast
 from collections import OrderedDict as odict
 
 from pyrefine.ast_parser import get_assign_expr_model
+from pyrefine.ast_parser.expr_list_parser import get_expr_to_check
 from pyrefine.exceptions import ErrorCallException, LambdaDefinitionException
 
 from pyrefine.ast_parser.expr_parser import expr_model_to_z3
-from pyrefine.helpers import UniquePrefix
+from pyrefine.helpers import UniquePrefix, merge_dict
 from pyrefine.model import VarsContext, InvocationModel, LambdaModel, ExpressionModel
 from ..ast_parser import get_lambdas_model
 from typing import Dict
@@ -17,9 +18,24 @@ import z3
 def check_program(program):
     if isinstance(program, str):
         program = ast.parse(program)
+    scopes = get_expr_to_check(program)
 
-    global_ctx, lambda_models = get_checked_lambda_definitions(program)
-    global_constraints = []
+    # global_ctx, lambda_models, global_constraints = check_expr_list(scopes['_module'])
+    for scope_name, expr_list in scopes.items():
+        global_ctx = VarsContext()
+        lambda_models = odict()
+        global_constraints = []
+        for expr in expr_list:
+            res = check_generic_expr(expr, global_ctx, lambda_models, global_constraints)
+            # new_global_ctx, new_lambda_models, new_global_constraints = res
+
+
+def check_generic_expr(program, global_ctx, lambda_models, global_constraints):
+    new_global_ctx, new_lambda_models = get_checked_lambda_definitions(program,
+                                                                       global_ctx,
+                                                                       lambda_models)
+    merge_dict(lambda_models, new_lambda_models)
+    global_ctx.merge(new_global_ctx)
     top_level_assign = get_assign_expr_model(program, defined_functions=lambda_models)
 
     for target_name, ret_type, var_value in top_level_assign:
@@ -29,6 +45,8 @@ def check_program(program):
         global_constraints += constraints
         global_ctx.add_var(target_name, ret_type)
         global_constraints.append(ret_var == global_ctx.get_var_z3(target_name))
+
+    return global_ctx, lambda_models, global_constraints
 
 
 def check_model(model, lambda_models, global_ctx, global_constraints):
@@ -46,26 +64,34 @@ def check_model(model, lambda_models, global_ctx, global_constraints):
 
         constraints = process_substitutions(subst, lambda_models, global_ctx,
                                             global_constraints=global_constraints)
+    elif isinstance(model, LambdaModel):
+        check_lambda(model, global_ctx, lambda_models)
+        constraints = []
+        ret_var = None
     else:
         raise Exception("Unreachable code.")
 
     return constraints, ret_var
 
 
-def get_checked_lambda_definitions(program):
-    lambda_models = get_lambdas_model(program)
-    lambda_models_dict = odict(map(lambda m: (m.func_name, m), lambda_models))
+def get_checked_lambda_definitions(program, global_ctx=None, lambda_models=None):
+    if global_ctx is None:
+        global_ctx = VarsContext()
+    if lambda_models is None:
+        lambda_models = odict()
 
-    global_ctx = VarsContext()
-    for lambda_model in lambda_models:
-        check_lambda(lambda_model, global_ctx, lambda_models_dict)
+    new_lambda_models = get_lambdas_model(program)
 
-    return global_ctx, lambda_models_dict
+    for lambda_model in new_lambda_models.values():
+        check_model(lambda_model, lambda_models, global_ctx, [])
+
+    merge_dict(lambda_models, new_lambda_models)
+    return global_ctx, lambda_models
 
 
 def check_lambda(lambda_model, global_ctx=None, lambda_models_dict=None):
     if lambda_models_dict is None:
-        lambda_models_dict = {}
+        lambda_models_dict = odict()
 
     var_ctx = VarsContext(variables=lambda_model.args,
                           name_map=UniquePrefix(custom_prefix=lambda_model.func_name),
