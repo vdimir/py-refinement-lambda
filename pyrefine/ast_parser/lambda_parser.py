@@ -9,7 +9,7 @@ from .. import model
 from typing import List
 import pyparsing as prs
 from collections import OrderedDict as odict
-from pyrefine.exceptions import ParseException
+from pyrefine.exceptions import ParseException, CheckerException
 
 DEFINE_LAMBDA_MACROS_NAME = 'define_'
 RET_VAR_NAME_MACRO = 'ret'
@@ -30,7 +30,9 @@ class LambdaParser:
         arg_names = list(map(lambda a: a.arg, func.args.args))
 
         arg_types = self.parse_type_def_str(type_def.s)
-
+        if any(map(lambda v: isinstance(v, model.types.FuncVar), arg_types)):
+            raise CheckerException(reason="Higher order function not supported!",
+                                   src_info={'lineno': node.lineno})
         if len(arg_types) != len(arg_names) + 1:
             raise ParseException(reason="Function annotation mismatch (at: %d)"
                                         % node.lineno)

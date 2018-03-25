@@ -1,9 +1,9 @@
 import ast
 import unittest
 
-from pyrefine.checker import get_checked_lambda_definitions
+from pyrefine.checker import get_checked_lambda_definitions, VarsContext
 
-from pyrefine.checker.check_program import check_program
+from pyrefine.checker.check_program import check_program, check_lambda
 from pyrefine.exceptions import ParseException, LambdaDefinitionException
 from pyrefine.ast_parser.lambda_parser import get_lambdas_model
 
@@ -50,7 +50,6 @@ def _unlines(*lines):
 
 class TestLambdaChecker(unittest.TestCase):
 
-    @unittest.skip
     def test_lambda_simple(self):
         program_ast = ast.parse(program_simple, "main.py")
 
@@ -62,11 +61,13 @@ class TestLambdaChecker(unittest.TestCase):
                      'example_chain_comp', 'example_diff_sign', 'example_simple_wrong']
         self.assertSetEqual(set(all_names), set(models.keys()))
 
+        global_ctx = VarsContext()
         for n in ['example_simple1', 'example_simple2', 'example_chain_comp']:
-            self.fail()
+            check_lambda(models[n], global_ctx)
+            self.assertIsNotNone(global_ctx.functions.get(n))
 
         with self.assertRaises(LambdaDefinitionException):
-            get_checked_lambda_definitions(models['example_simple_wrong'])
+            check_lambda(models['example_simple_wrong'])
 
     @unittest.skip
     def test_func_arg(self):

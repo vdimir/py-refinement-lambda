@@ -1,10 +1,20 @@
 class PyrefineException(Exception):
+    def __init__(self, src_info=None, reason=""):
+        self.reason = reason
+        self.src_info = src_info
+        if src_info is None:
+            self.src_info = {}
+
     def __str__(self):
         return "%s(%r)" % (self.__class__.__name__, self.__dict__)
 
 
 class CheckerException(PyrefineException):
-    pass
+    def __init__(self, src_info=None, reason=""):
+        self.reason = reason
+        self.src_info = src_info
+        if src_info is None:
+            self.src_info = {}
 
 
 class LambdaDefinitionException(CheckerException):
@@ -21,7 +31,8 @@ class ErrorCallException(CheckerException):
 
 
 class ParseException(PyrefineException):
-    def __init__(self, expr_str=None, reason=None):
+    def __init__(self, expr_str=None, reason=None, src_data=None):
+        self.src_data = src_data
         self.reason = reason
         self.expr_str = expr_str
 

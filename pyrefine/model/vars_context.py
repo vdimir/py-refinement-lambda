@@ -1,7 +1,6 @@
 from collections import OrderedDict as odict
-
+from pyrefine.exceptions import VariableNotFoundException
 from pyrefine.model.types import ModelVar
-from typing import Tuple
 
 
 class ScopedContext:

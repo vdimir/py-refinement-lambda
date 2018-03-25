@@ -1,8 +1,7 @@
 
-# type_annotation, pre_condition, result_condition, func
-def define_(*args):
+def _return_last_arg(*args):
     return args[-1]
 
 
-def xdefine_(*args):
-    return args[-1]
+define_ = _return_last_arg
+c_ = _return_last_arg

@@ -31,23 +31,13 @@ def main():
 
     example_mean_pos = define_('int -> int -> int',
                                'a > 0 and b > 0',
-                               '(ret <= a or ret <= b) and (0 <= ret or 0 <= ret)',
+                               '(ret <= a or ret <= b) and (0 <= ret)',
                                lambda a, b: (a + b) // 2)
 
     example_imp = define_('int -> int -> int',
                           '(x > 0) >> (y > 1)',
                           'ret > x or ret <= 0 ',
                           lambda x, y: x * y)
-
-    # example_fun = define_('int -> (int -> int) -> int',
-    #                       'forall_({x : int}, f(x) > 0)',
-    #                       'ret > 1',
-    #                       lambda a, f: f(a) + 1)
-
-    # example_fun_imp = define_('int -> (int -> int) -> int',
-    #                           'forall_({x : int}, (x > 0) >> (f(x) > 0)) and a < -2',
-    #                           'ret > 1',
-    #                           lambda a, f: f(-a) + 1)
 
     example_diff_sign = define_('int -> int -> int',
                                 'a*b < 0',
@@ -60,14 +50,18 @@ def main():
     example_simple4 = define_('bool -> bool -> bool', 'True', 'ret == (a >> b)',
                               lambda a, b: b if a else True)
 
-
     y = example_mean_pos(example_simple1(2), 1)
-    c = example_diff_sign(example_mean(-3, -1), example_mean(1, example_simple1(1) + 5))
+    c = c_(example_diff_sign(example_mean(-3, -1), example_mean(1, example_simple1(1) + 5)))
 
-    # TODO should be error
-    # a = example_fun(5, example_simple1)
-    # b = example_simple1(example_fun(5, example_simple1))
-    # a_err = example_fun(1, example_simple2)
+    a = c_('int', -5)
+    zero = c_('int', a + 5)
+
+    y1 = c_('int', example1(example_simple1(zero), -y))
+
+    z = example_mean_pos(y1, 1) + 1
+
+    # example_simple_global_var = define_('int ->  int', 'a > 0', 'ret > 0',
+    #                             lambda a: a if a > 0 else z)
 
 
 if __name__ == '__main__':

@@ -2,12 +2,12 @@ import ast
 
 from collections import OrderedDict as odict
 
-from pyrefine.ast_parser import get_invocations_model
+from pyrefine.ast_parser import get_toplevel_model
 from pyrefine.exceptions import ErrorCallException, LambdaDefinitionException
 
 from pyrefine.ast_parser.expr_parser import expr_model_to_z3
 from pyrefine.helpers import UniquePrefix
-from pyrefine.model import VarsContext, InvocationModel, LambdaModel
+from pyrefine.model import VarsContext, InvocationModel, LambdaModel, ExpressionModel
 from ..ast_parser import get_lambdas_model
 from typing import Dict
 
@@ -19,17 +19,37 @@ def check_program(program):
         program = ast.parse(program)
 
     global_ctx, lambda_models = get_checked_lambda_definitions(program)
-    global_contraints = []
-    invocations = get_invocations_model(program, defined_functions=lambda_models)
-    for target_name, invocation in invocations:
-        # TODO add target vars to context
-        print(target_name)
-        counterexample = check_invocation_model(invocation, lambda_models,
-                               global_ctx, global_contraints)
+    global_constraints = []
+    top_level_assign = get_toplevel_model(program, defined_functions=lambda_models)
+
+    for target_name, ret_type, var_value in top_level_assign:
+        constraints, ret_var = check_model(var_value, lambda_models,
+                                           global_ctx, global_constraints)
+
+        global_constraints += constraints
+        global_ctx.add_var(target_name, ret_type)
+        global_constraints.append(ret_var == global_ctx.get_var_z3(target_name))
+
+
+def check_model(model, lambda_models, global_ctx, global_constraints):
+    if isinstance(model, InvocationModel):
+        counterexample = check_invocation_model(model, lambda_models,
+                                                global_ctx, global_constraints)
+
         assert counterexample is None
-        result = invocation_model_assertions(invocation, lambda_models,
-                                             global_ctx, global_contraints)
-        constraints, local_context, ret_var = result
+        result = invocation_model_assertions(model, lambda_models,
+                                             global_ctx, global_constraints)
+        constraints, _, ret_var = result
+
+    elif isinstance(model, ExpressionModel):
+        ret_var, subst = expr_model_to_z3(model, global_ctx, dsl=False)
+
+        constraints = process_substitutions(subst, lambda_models, global_ctx,
+                                            global_constraints=global_constraints)
+    else:
+        raise Exception("Unreachable code.")
+
+    return constraints, ret_var
 
 
 def get_checked_lambda_definitions(program):
@@ -37,37 +57,44 @@ def get_checked_lambda_definitions(program):
     lambda_models_dict = odict(map(lambda m: (m.func_name, m), lambda_models))
 
     global_ctx = VarsContext()
-
     for lambda_model in lambda_models:
-        var_ctx = VarsContext(variables=lambda_model.args,
-                              name_map=UniquePrefix(custom_prefix=lambda_model.func_name),
-                              parent_ctx=global_ctx)
+        check_lambda(lambda_model, global_ctx, lambda_models_dict)
 
-        pre_z3_cond, _ = expr_model_to_z3(lambda_model.pre_cond, var_ctx, dsl=True)
-        post_z3_cond, _ = expr_model_to_z3(lambda_model.post_cond, var_ctx, dsl=True)
+    return global_ctx, lambda_models_dict
 
-        body_z3, subst = expr_model_to_z3(lambda_model.body, var_ctx, dsl=False)
 
-        subst_constraints = process_substitutions(subst, lambda_models_dict, var_ctx,
-                                                  global_constraints=[pre_z3_cond])
+def check_lambda(lambda_model, global_ctx=None, lambda_models_dict=None):
+    if lambda_models_dict is None:
+        lambda_models_dict = {}
 
-        ret_var_bind = var_ctx.get_var_z3('ret') == body_z3
+    var_ctx = VarsContext(variables=lambda_model.args,
+                          name_map=UniquePrefix(custom_prefix=lambda_model.func_name),
+                          parent_ctx=global_ctx)
 
+    pre_z3_cond, _ = expr_model_to_z3(lambda_model.pre_cond, var_ctx, dsl=True)
+    post_z3_cond, _ = expr_model_to_z3(lambda_model.post_cond, var_ctx, dsl=True)
+
+    body_z3, subst = expr_model_to_z3(lambda_model.body, var_ctx, dsl=False)
+
+    subst_constraints = process_substitutions(subst, lambda_models_dict, var_ctx,
+                                              global_constraints=[pre_z3_cond])
+
+    ret_var_bind = var_ctx.get_var_z3('ret') == body_z3
+
+    if global_ctx is not None:
         global_ctx.functions.add(lambda_model.func_name,
                                  lambda_model.args['ret'])
 
-        solver = z3.Solver()
+    solver = z3.Solver()
 
-        solver.add(pre_z3_cond)
-        solver.add(*subst_constraints)
-        solver.add(ret_var_bind)
-        solver.add(z3.Not(post_z3_cond))
+    solver.add(pre_z3_cond)
+    solver.add(*subst_constraints)
+    solver.add(ret_var_bind)
+    solver.add(z3.Not(post_z3_cond))
 
-        check = solver.check()
-        if check != z3.unsat:
-            raise LambdaDefinitionException(lambda_model.src_data, lambda_model.func_name)
-
-    return global_ctx, lambda_models_dict
+    check = solver.check()
+    if check != z3.unsat:
+        raise LambdaDefinitionException(lambda_model.src_data, lambda_model.func_name)
 
 
 def invocation_model_assertions(invocation_model: InvocationModel,
@@ -86,7 +113,8 @@ def invocation_model_assertions(invocation_model: InvocationModel,
     for local_var_name, local_var_val in zip(arg_names, invocation_model.args):
         arg_model, new_subst = expr_model_to_z3(local_var_val, var_cxt, False)
 
-        new_constraints = process_substitutions(new_subst, lambda_models, var_cxt, global_constraints)
+        new_constraints = process_substitutions(new_subst, lambda_models, var_cxt,
+                                                global_constraints)
         constraints += new_constraints
         constraints.append(arg_model == local_context.get_var_z3(local_var_name))
 
@@ -141,6 +169,5 @@ def check_invocation_model(invocation_model: InvocationModel,
     s.add(z3.Not(pre_cond))
     check = s.check()
     if check != z3.unsat:
-        print(s.model())
         raise ErrorCallException(name=invocation_model.func_name,
                                  src_info=invocation_model.src_data)
