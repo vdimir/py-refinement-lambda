@@ -5,7 +5,7 @@ from pyrefine.exceptions import ErrorCallException
 
 from pyrefine.model import VarsContext
 
-from pyrefine.ast_parser import get_toplevel_model, get_lambdas_model
+from pyrefine.ast_parser import get_assign_expr_model, get_lambdas_model
 from pyrefine.checker import check_invocation_model, check_program, \
     get_checked_lambda_definitions, check_model
 
@@ -86,7 +86,7 @@ class TestLambdaInvoke(unittest.TestCase):
 
     def assertInvocations(self, program, expected):
         program_ast = ast.parse(program, "main.py")
-        invocations = get_toplevel_model(program_ast, self.lambda_models)
+        invocations = get_assign_expr_model(program_ast, self.lambda_models)
         defined_vars = set(map(lambda a: a[0], invocations))
         self.assertSequenceEqual(defined_vars, set(expected.keys()))
         for name, var_type, model in invocations:

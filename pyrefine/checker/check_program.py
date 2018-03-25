@@ -2,7 +2,7 @@ import ast
 
 from collections import OrderedDict as odict
 
-from pyrefine.ast_parser import get_toplevel_model
+from pyrefine.ast_parser import get_assign_expr_model
 from pyrefine.exceptions import ErrorCallException, LambdaDefinitionException
 
 from pyrefine.ast_parser.expr_parser import expr_model_to_z3
@@ -20,7 +20,7 @@ def check_program(program):
 
     global_ctx, lambda_models = get_checked_lambda_definitions(program)
     global_constraints = []
-    top_level_assign = get_toplevel_model(program, defined_functions=lambda_models)
+    top_level_assign = get_assign_expr_model(program, defined_functions=lambda_models)
 
     for target_name, ret_type, var_value in top_level_assign:
         constraints, ret_var = check_model(var_value, lambda_models,

@@ -9,7 +9,6 @@ from pyrefine.model import InvocationModel
 from .mapping import operator_ast_to_model
 from ..model import operators
 from ..model import ExpressionModel, VarsContext
-from .mapping import type_str_to_model
 
 
 def str_to_ast(expr_str: str) -> ExpressionModel:
@@ -133,19 +132,19 @@ class ExprVisitor(ast.NodeVisitor):
         print(ast.dump(e))
         raise Exception("Nodes %s not supported" % str(e))
 
-
-def _parse_forall(binded_vars, body, var_ctx):
-    assert isinstance(binded_vars, ast.Dict), "Forall parsing error!"
-
-    binded_vars_ctx = VarsContext()
-    for name, var_type in zip(binded_vars.keys, binded_vars.values):
-        assert isinstance(name, ast.Name) and isinstance(var_type, ast.Name)
-        variable = type_str_to_model(var_type.id)
-        binded_vars_ctx.add_var(name.id, variable)
-
-    binded_vars_z3_ctx = binded_vars_ctx.as_z3_ctx(lambda s: "$$" + s)
-    binded_vars_z3_ctx.parent_context = var_ctx
-
-    expr_parser = ExprParser(binded_vars_z3_ctx, dsl=True)
-    res = expr_parser.parse_expr_node(body)
-    return operators.ForAll(binded_vars_z3_ctx.get_z3_var_list(), res)
+#
+# def _parse_forall(binded_vars, body, var_ctx):
+#     assert isinstance(binded_vars, ast.Dict), "Forall parsing error!"
+#
+#     binded_vars_ctx = VarsContext()
+#     for name, var_type in zip(binded_vars.keys, binded_vars.values):
+#         assert isinstance(name, ast.Name) and isinstance(var_type, ast.Name)
+#         variable = type_str_to_model(var_type.id)
+#         binded_vars_ctx.add_var(name.id, variable)
+#
+#     binded_vars_z3_ctx = binded_vars_ctx.as_z3_ctx(lambda s: "$$" + s)
+#     binded_vars_z3_ctx.parent_context = var_ctx
+#
+#     expr_parser = ExprParser(binded_vars_z3_ctx, dsl=True)
+#     res = expr_parser.parse_expr_node(body)
+#     return operators.ForAll(binded_vars_z3_ctx.get_z3_var_list(), res)

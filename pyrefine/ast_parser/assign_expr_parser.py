@@ -11,10 +11,10 @@ from pyrefine.exceptions import ParseException, CheckerException
 from typing import List, Tuple, Dict
 
 
-def get_toplevel_model(program_ast,
-                       defined_functions: Dict[str, model.LambdaModel]) \
+def get_assign_expr_model(program_ast,
+                          defined_functions: Dict[str, model.LambdaModel]) \
         -> List[Tuple[str, model.InvocationModel]]:
-    invoke_visitor = TopLevelExprVisitor()
+    invoke_visitor = AssignExprVisitor()
     invoke_visitor.defined_functions = defined_functions
     invoke_visitor.visit(program_ast)
     return invoke_visitor.result
@@ -23,7 +23,7 @@ def get_toplevel_model(program_ast,
 CHECK_ASSIGN_MACRO_NAME = 'c_'
 
 
-class TopLevelExprVisitor(ast.NodeVisitor):
+class AssignExprVisitor(ast.NodeVisitor):
     def __init__(self):
         self.result = []
         self.defined_functions = None
