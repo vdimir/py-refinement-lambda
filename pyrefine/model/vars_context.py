@@ -1,5 +1,5 @@
 from collections import OrderedDict as odict
-from pyrefine.exceptions import VariableNotFoundException
+from pyrefine.exceptions import VariableNotFoundException, CheckerException
 from pyrefine.helpers import merge_dict
 from pyrefine.model.types import ModelVar
 
@@ -13,7 +13,8 @@ class ScopedContext:
         self.values = odict(values)
 
     def add(self, name, val):
-        assert name not in self.values
+        if name in self.values:
+            raise CheckerException(reason='Variable `{}` already defined.'.format(name))
         self.values[name] = val
 
     def get(self, name):

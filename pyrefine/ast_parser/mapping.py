@@ -4,6 +4,7 @@ from ..model import types
 
 _operator_ast_to_model = {
     ast.FloorDiv: operators.truediv,
+    ast.Mod: operators.mod,
     ast.And: operators.And,
     ast.Add: operators.add,
     ast.Sub: operators.sub,

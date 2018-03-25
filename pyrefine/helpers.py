@@ -23,6 +23,6 @@ def merge_dict(dict1, dict2):
         if k in dict1:
             if dict1[k] == v:
                 continue
-            raise Exception("Key in merged dict should not intersect.")
+            raise ValueError("Key in merged dict should not intersect.")
         dict1[k] = v
     return dict1

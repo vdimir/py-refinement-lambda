@@ -45,7 +45,7 @@ def check_expr_list(expr_list, global_ctx, lambda_models, global_constraints):
 
 
 def check_generic_expr(program, global_ctx, lambda_models, global_constraints):
-    get_checked_lambda_definitions(program, global_ctx, lambda_models)
+    get_checked_lambda_definitions(program, global_ctx, lambda_models, global_constraints)
 
     top_level_assign = get_assign_expr_model(program, defined_functions=lambda_models)
 
@@ -76,7 +76,7 @@ def check_model(model, lambda_models, global_ctx, global_constraints):
         constraints = process_substitutions(subst, lambda_models, global_ctx,
                                             global_constraints=global_constraints)
     elif isinstance(model, LambdaModel):
-        check_lambda(model, global_ctx, lambda_models)
+        check_lambda(model, global_ctx, lambda_models, global_constraints)
         constraints = []
         ret_var = None
     else:
@@ -85,31 +85,40 @@ def check_model(model, lambda_models, global_ctx, global_constraints):
     return constraints, ret_var
 
 
-def get_checked_lambda_definitions(program, global_ctx=None, lambda_models=None):
+def get_checked_lambda_definitions(program, global_ctx=None,
+                                   lambda_models=None,
+                                   global_constraints=None):
     if global_ctx is None:
         global_ctx = VarsContext()
     if lambda_models is None:
         lambda_models = odict()
+    if global_constraints is None:
+        global_constraints = []
 
     new_lambda_models = get_lambdas_model(program)
 
     for lambda_model in new_lambda_models.values():
-        check_model(lambda_model, lambda_models, global_ctx, [])
+        check_model(lambda_model, lambda_models, global_ctx, global_constraints)
 
     merge_dict(lambda_models, new_lambda_models)
     return global_ctx, lambda_models
 
 
-def check_lambda(lambda_model, global_ctx=None, lambda_models_dict=None):
+def check_lambda(lambda_model, global_ctx=None,
+                 lambda_models_dict=None, global_constraints=None):
     if lambda_models_dict is None:
         lambda_models_dict = odict()
 
+    name_map = UniquePrefix(custom_prefix=lambda_model.func_name)
     var_ctx = VarsContext(variables=lambda_model.args,
-                          name_map=UniquePrefix(custom_prefix=lambda_model.func_name),
-                          parent_ctx=global_ctx)
+                          name_map=name_map)
 
     pre_z3_cond, _ = expr_model_to_z3(lambda_model.pre_cond, var_ctx, dsl=True)
     post_z3_cond, _ = expr_model_to_z3(lambda_model.post_cond, var_ctx, dsl=True)
+
+    var_ctx = VarsContext(variables=lambda_model.args,
+                          name_map=name_map,
+                          parent_ctx=global_ctx)
 
     body_z3, subst = expr_model_to_z3(lambda_model.body, var_ctx, dsl=False)
 
@@ -126,6 +135,9 @@ def check_lambda(lambda_model, global_ctx=None, lambda_models_dict=None):
 
     solver.add(pre_z3_cond)
     solver.add(*subst_constraints)
+    if global_constraints is not None:
+        solver.add(*global_constraints)
+
     solver.add(ret_var_bind)
     solver.add(z3.Not(post_z3_cond))
 

@@ -1,3 +1,8 @@
+import unittest
+
+from pyrefine.checker import check_program
+
+program_base = r"""
 #!/usr/bin/env python
 
 from pyrefine import *
@@ -6,11 +11,6 @@ example_global = define_('int -> int -> int', 'a > 0', 'ret > b',
                    lambda a, b: a + b)
 
 def main():
-
-    # example_tup = xdefine_('(int, int, int) -> int -> (int, int)',
-    #                        'a[0] > a[1] and 0 <= i < 3',
-    #                        lambda a, i: (a[i], a[(i + 1) % 3]))
-
     example1 = define_('int -> int -> int', 'a >= b', 'ret >= 0',
                        lambda a, b: example_global(a - b + 1, 1))
 
@@ -71,3 +71,19 @@ def main():
 if __name__ == '__main__':
     main()
     print('Done')
+
+"""
+
+
+class TestProgram(unittest.TestCase):
+
+    def test_1(self):
+        self.assertProgramSafe(program_base)
+
+    def assertProgramSafe(self, program):
+        counterexample = check_program(program)
+        self.assertIsNone(counterexample)
+
+
+if __name__ == '__main__':
+    unittest.main()
