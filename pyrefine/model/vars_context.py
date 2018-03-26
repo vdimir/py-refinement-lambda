@@ -36,6 +36,7 @@ class ScopedContext:
             return False
         return name in self.parent
 
+
 class VarsContext:
     def __init__(self, variables=None, parent_ctx=None, name_map=None):
         if parent_ctx is not None:
@@ -54,7 +55,7 @@ class VarsContext:
         return self
 
     def __contains__(self, item):
-        return item in self.variables
+        return item in self.variables or item in self.functions
 
     def get_var_z3(self, name):
         variable, name_map = self.variables.get(name)

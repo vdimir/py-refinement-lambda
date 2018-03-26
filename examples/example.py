@@ -57,6 +57,7 @@ def main():
 
     a = c_('int', -5)
     zero = c_('int', a + 5)
+    example_simple4 = 1
 
     # example_global = define_('bool -> bool -> bool', 'True', 'ret == (a >> b)',
     #                           lambda a, b: b if a else True)
