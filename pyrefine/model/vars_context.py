@@ -29,6 +29,12 @@ class ScopedContext:
         assert new_ctx.scope_const is None
         merge_dict(self.values, new_ctx.values)
 
+    def __contains__(self, name):
+        if name in self.values:
+            return True
+        if self.parent is None:
+            return False
+        return name in self.parent
 
 class VarsContext:
     def __init__(self, variables=None, parent_ctx=None, name_map=None):
@@ -46,6 +52,9 @@ class VarsContext:
     def add_var(self, name: str, variable_type: ModelVar):
         self.variables.add(name, variable_type)
         return self
+
+    def __contains__(self, item):
+        return item in self.variables
 
     def get_var_z3(self, name):
         variable, name_map = self.variables.get(name)

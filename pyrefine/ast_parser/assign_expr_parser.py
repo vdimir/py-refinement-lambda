@@ -32,16 +32,19 @@ class AssignExprVisitor(ast.NodeVisitor):
 
         assign_to_call = isinstance(node.value, ast.Call) and \
                             isinstance(node.value.func, ast.Name)
-        if not assign_to_call:
-            return
 
         if len(node.targets) != 1 or not isinstance(node.targets[0], ast.Name):
             return
 
         target_name = node.targets[0].id
 
-        name_defined = node.value.func.id in self.defined_functions
-        if name_defined:
+        if not assign_to_call:
+            self.result.append((target_name, None, None))
+            return
+
+
+        func_name_defined = node.value.func.id in self.defined_functions
+        if func_name_defined:
             invoke_model, ret_type = self._parse_defined_call(node.value)
             self.result.append((target_name, ret_type, invoke_model))
             return

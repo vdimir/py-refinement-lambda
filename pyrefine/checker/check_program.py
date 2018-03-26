@@ -4,7 +4,8 @@ from collections import OrderedDict as odict
 
 from pyrefine.ast_parser import get_assign_expr_model
 from pyrefine.ast_parser.expr_list_parser import get_expr_to_check
-from pyrefine.exceptions import ErrorCallException, LambdaDefinitionException
+from pyrefine.exceptions import ErrorCallException, LambdaDefinitionException, \
+    CheckerException
 
 from pyrefine.ast_parser.expr_parser import expr_model_to_z3
 from pyrefine.helpers import UniquePrefix, merge_dict
@@ -50,9 +51,15 @@ def check_generic_expr(program, global_ctx, lambda_models, global_constraints):
     top_level_assign = get_assign_expr_model(program, defined_functions=lambda_models)
 
     for target_name, ret_type, var_value in top_level_assign:
-        constraints, ret_var = check_model(var_value, lambda_models,
-                                           global_ctx, global_constraints)
+        if target_name in global_ctx:
+            raise CheckerException(reason='Variable `{}` already defined.'
+                                   .format(target_name))
 
+        res = check_model(var_value, lambda_models,
+                                           global_ctx, global_constraints)
+        if res is None:
+            continue
+        constraints, ret_var = res
         global_constraints += constraints
         global_ctx.add_var(target_name, ret_type)
         global_constraints.append(ret_var == global_ctx.get_var_z3(target_name))
@@ -79,6 +86,8 @@ def check_model(model, lambda_models, global_ctx, global_constraints):
         check_lambda(model, global_ctx, lambda_models, global_constraints)
         constraints = []
         ret_var = None
+    elif model is None:
+        return
     else:
         raise Exception("Unreachable code.")
 
