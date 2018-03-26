@@ -1,5 +1,7 @@
 import unittest
 
+from pyrefine.exceptions import CheckerException
+
 from pyrefine.checker import check_program
 
 program_base = r"""
@@ -75,10 +77,35 @@ if __name__ == '__main__':
 """
 
 
+def _unlines(*lines):
+    return "\n".join(lines)
+
+
 class TestProgram(unittest.TestCase):
 
     def test_1(self):
         self.assertProgramSafe(program_base)
+
+    def test_redefine(self):
+        # constant
+        with self.assertRaises(CheckerException) as e:
+            counterexample = check_program(_unlines("x = c_('int', 5)",
+                                                    "x = c_('int', -5)"))
+        self.assertEqual(e.exception.reason, "Variable `x` already defined.")
+
+        # function
+        with self.assertRaises(CheckerException) as e:
+            counterexample = check_program(_unlines(
+                "x = define_('int -> int', 'True', 'True', lambda x: x + 5)",
+                "x = define_('int -> int', 'True', 'True', lambda x: x + 6)"))
+        self.assertEqual(e.exception.reason, "Variable `x` already defined.")
+
+        # mixed
+        with self.assertRaises(CheckerException) as e:
+            counterexample = check_program(_unlines(
+                "x = define_('int -> int', 'True', 'True', lambda x: x + 5)",
+                "x = 5"))
+        self.assertEqual(e.exception.reason, "Variable `x` already defined.")
 
     def assertProgramSafe(self, program):
         counterexample = check_program(program)
