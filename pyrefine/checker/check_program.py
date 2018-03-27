@@ -120,10 +120,19 @@ def check_lambda(lambda_model, global_ctx=None,
 
     name_map = UniquePrefix(custom_prefix=lambda_model.func_name)
     var_ctx = VarsContext(variables=lambda_model.args,
-                          name_map=name_map)
+                          name_map=name_map,
+                          parent_ctx=global_ctx)
 
-    pre_z3_cond, _ = expr_model_to_z3(lambda_model.pre_cond, var_ctx, dsl=True)
-    post_z3_cond, _ = expr_model_to_z3(lambda_model.post_cond, var_ctx, dsl=True)
+    subst_constraints = []
+    pre_z3_cond, subst = expr_model_to_z3(lambda_model.pre_cond, var_ctx, dsl=True)
+
+    subst_constraints += process_substitutions(subst, lambda_models_dict, var_ctx,
+                                               global_constraints=[pre_z3_cond])
+
+    post_z3_cond, subst = expr_model_to_z3(lambda_model.post_cond, var_ctx, dsl=True)
+
+    subst_constraints += process_substitutions(subst, lambda_models_dict, var_ctx,
+                                               global_constraints=[pre_z3_cond])
 
     var_ctx = VarsContext(variables=lambda_model.args,
                           name_map=name_map,
@@ -131,8 +140,8 @@ def check_lambda(lambda_model, global_ctx=None,
 
     body_z3, subst = expr_model_to_z3(lambda_model.body, var_ctx, dsl=False)
 
-    subst_constraints = process_substitutions(subst, lambda_models_dict, var_ctx,
-                                              global_constraints=[pre_z3_cond])
+    subst_constraints += process_substitutions(subst, lambda_models_dict, var_ctx,
+                                               global_constraints=[pre_z3_cond])
 
     ret_var_bind = var_ctx.get_var_z3('ret') == body_z3
 
@@ -152,7 +161,11 @@ def check_lambda(lambda_model, global_ctx=None,
 
     check = solver.check()
     if check != z3.unsat:
-        raise LambdaDefinitionException(lambda_model.src_data, lambda_model.func_name)
+        model = None
+        if check == z3.sat:
+            model = solver.model()
+        raise LambdaDefinitionException(lambda_model.src_data, lambda_model.func_name,
+                                        model)
 
 
 def invocation_model_assertions(invocation_model: InvocationModel,

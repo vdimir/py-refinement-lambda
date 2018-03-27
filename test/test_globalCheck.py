@@ -89,23 +89,43 @@ class TestProgram(unittest.TestCase):
     def test_redefine(self):
         # constant
         with self.assertRaises(CheckerException) as e:
-            counterexample = check_program(_unlines("x = c_('int', 5)",
+            check_program(_unlines("x = c_('int', 5)",
                                                     "x = c_('int', -5)"))
         self.assertEqual(e.exception.reason, "Variable `x` already defined.")
 
         # function
         with self.assertRaises(CheckerException) as e:
-            counterexample = check_program(_unlines(
+            check_program(_unlines(
                 "x = define_('int -> int', 'True', 'True', lambda x: x + 5)",
                 "x = define_('int -> int', 'True', 'True', lambda x: x + 6)"))
         self.assertEqual(e.exception.reason, "Variable `x` already defined.")
 
         # mixed
         with self.assertRaises(CheckerException) as e:
-            counterexample = check_program(_unlines(
+            check_program(_unlines(
                 "x = define_('int -> int', 'True', 'True', lambda x: x + 5)",
                 "x = 5"))
         self.assertEqual(e.exception.reason, "Variable `x` already defined.")
+
+    def test_namehiding(self):
+        program = _unlines("x = c_('int', -5)",
+                           "f = define_('int -> int', 'x > 0', 'ret > 1',"
+                                "lambda x: x + 1)")
+        check_program(program)
+
+    def test_globalFuncInCond(self):
+        program = _unlines("f = define_('int', 'True', 'ret < 0',  lambda: -5)",
+                           "g = define_('int -> int', 'x > -f()', 'ret > 1',"
+                                "lambda x: x + 1)")
+        check_program(program)
+
+        program = _unlines("abs_ = define_('int -> int', 'True', "
+                                "'(x >= 0) >> (ret == x) and (x < 0) >> (ret == -x)',"
+                                "lambda x: x if x > 0 else -x)",
+                           "g = define_('int -> int', 'True', 'abs_(ret) > 1',"
+                                "lambda x: x*x + 2)")
+        check_program(program)
+
 
     def assertProgramSafe(self, program):
         counterexample = check_program(program)

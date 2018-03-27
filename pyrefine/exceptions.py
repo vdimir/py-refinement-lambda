@@ -18,7 +18,8 @@ class CheckerException(PyrefineException):
 
 
 class LambdaDefinitionException(CheckerException):
-    def __init__(self, src_info, name):
+    def __init__(self, src_info, name, counterexample=None):
+        self.counterexample = counterexample
         self.src_info = src_info
         self.name = name
 
