@@ -18,10 +18,16 @@ class IntVar(SimpleConst):
     def get_sort(self):
         return z3.IntSort()
 
+    def __str__(self):
+        return 'Int'
+
 
 class BoolVar(SimpleConst):
     def get_sort(self):
         return z3.BoolSort()
+
+    def __str__(self):
+        return 'Bool'
 
 
 class FuncVar(ModelVar):

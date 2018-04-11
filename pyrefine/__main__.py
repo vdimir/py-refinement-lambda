@@ -4,7 +4,7 @@
 import sys
 import ast
 
-from pyrefine.checker.check_program import check_program
+from pyrefine.checker import check_program
 
 
 def main():
@@ -14,13 +14,22 @@ def main():
         s = f.read()
 
     program_ast = ast.parse(s, fname)
-    res = check_program(program_ast)
-    print(res)
+
+    defined_funcs = check_program(program_ast, raise_exception=False)
+    for n, e in defined_funcs.items():
+        if e is None:
+            print(n, "ok.")
+        else:
+            print(n, "Error: ", str(e))
 
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         print("Usage: %s <file.py>" % sys.argv[0])
         sys.exit(0)
-
-    main()
+    try:
+        main()
+    except Exception as e:
+        print()
+        print("Exception:")
+        print(e)

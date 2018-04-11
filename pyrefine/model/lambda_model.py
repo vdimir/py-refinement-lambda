@@ -6,7 +6,7 @@ from .vars_context import VarsContext
 
 
 class LambdaModel:
-    def __init__(self, name, args, body: ExpressionModel):
+    def __init__(self, name, args, body):
         self.func_name = name
         self.args = args
         self.body = body
@@ -35,3 +35,7 @@ class LambdaModel:
     def __str__(self):
         attrs_str = map(lambda kv: "{}: {}".format(*kv), self.__dict__.items())
         return "{}({})".format(self.__class__.__name__, list(attrs_str))
+
+
+class FunctionDefModel(LambdaModel):
+    pass

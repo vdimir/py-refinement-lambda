@@ -111,7 +111,7 @@ class ExprVisitor(ast.NodeVisitor):
         #     return
 
         unique_name = UniquePrefix(custom_prefix='call')(e.func.id)
-        ret_var = self.var_ctx.functions.get(e.func.id)[0].as_z3_var(unique_name)
+        ret_var = self.var_ctx.functions.get(e.func.id).as_z3_var(unique_name)
 
         inv_model = InvocationModel(e.func.id)
         for a in e.args:

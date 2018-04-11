@@ -16,74 +16,85 @@ RET_VAR_NAME_MACRO = 'ret'
 
 
 def get_lambdas_model(program_ast) -> odict:
-    lambda_visitor = LambdaVisitor()
+    lambda_visitor = LambdaVisitor(recursive=False)
     lambda_visitor.visit(program_ast)
     lambda_models = lambda_visitor.result
     lambda_models_dict = odict(map(lambda m: (m.func_name, m), lambda_models))
     return lambda_models_dict
 
 
-class LambdaParser:
-    def __init__(self):
-        pass
+def parse_type_def_str(typedef_str: str) -> List[model.types.ModelVar]:
+    """Parse function type annotation."""
 
-    def parse_lambda_node(self, node, func_name) -> model.LambdaModel:
-        type_def, pre_cond, post_cond, func = node.args
-        arg_names = list(map(lambda a: a.arg, func.args.args))
+    lpar = prs.Literal('(').suppress()
+    rpar = prs.Literal(')').suppress()
+    arr = prs.Literal('->').suppress()
+    term = prs.Word(prs.alphas)
+    func_def = prs.Forward()
+    typ = term | prs.Group(lpar + func_def + rpar)
+    func_def << typ + prs.ZeroOrMore(arr + typ)
+    func_def += prs.StringEnd()
+    res = func_def.parseString(typedef_str).asList()
 
-        arg_types = self.parse_type_def_str(type_def.s)
-        if any(map(lambda v: isinstance(v, model.types.FuncVar), arg_types)):
-            raise CheckerException(reason="Higher order function not supported!",
-                                   src_info={'lineno': node.lineno})
-        if len(arg_types) != len(arg_names) + 1:
-            raise ParseException(reason="Function annotation mismatch (at: %d)"
-                                        % node.lineno)
+    def unroll(lst):
+        for t in lst:
+            if isinstance(t, str):
+                yield type_str_to_model(t)
+            elif isinstance(t, list):
+                args = unroll(t)
+                func = model.types.FuncVar()
+                [func.add_arg(a) for a in args]
+                yield func
+            else:
+                assert False, "Unreachable code"
 
-        arg_names.append(RET_VAR_NAME_MACRO)
+    return list(unroll(res))
 
-        args = odict(zip(arg_names, arg_types))
-        lambda_model = model.LambdaModel(name=func_name,
-                                         args=args,
-                                         body=ExpressionModel(func.body))
 
-        lambda_model.add_pre_cond(str_to_ast(pre_cond.s))
-        lambda_model.add_post_cond(str_to_ast(post_cond.s))
-        lambda_model.src_data['lineno'] = node.lineno
-        return lambda_model
+def parse_lambda_node(node, func_name) -> model.LambdaModel:
+    type_def, pre_cond, post_cond, func = node.args
+    arg_names = list(map(lambda a: a.arg, func.args.args))
 
-    def parse_type_def_str(self, typedef_str: str) -> List[model.types.ModelVar]:
-        """Parse function type annotation."""
+    arg_types = parse_type_def_str(type_def.s)
+    if any(map(lambda v: isinstance(v, model.types.FuncVar), arg_types)):
+        raise CheckerException(reason="Higher order function not supported!",
+                               src_info={'lineno': node.lineno})
+    if len(arg_types) != len(arg_names) + 1:
+        raise ParseException(reason="Function `{}` annotation mismatch"
+                                    "Expected {} agrs, found {} (at: {})"
+                                        .format(func_name,
+                                                len(arg_types) - 1,
+                                                len(arg_names),
+                                                node.lineno))
 
-        lpar = prs.Literal('(').suppress()
-        rpar = prs.Literal(')').suppress()
-        arr = prs.Literal('->').suppress()
-        term = prs.Word(prs.alphas)
-        func_def = prs.Forward()
-        typ = term | prs.Group(lpar + func_def + rpar)
-        func_def << typ + prs.ZeroOrMore(arr + typ)
-        func_def += prs.StringEnd()
-        res = func_def.parseString(typedef_str).asList()
+    arg_names.append(RET_VAR_NAME_MACRO)
 
-        def unroll(lst):
-            for t in lst:
-                if isinstance(t, str):
-                    yield type_str_to_model(t)
-                elif isinstance(t, list):
-                    args = unroll(t)
-                    func = model.types.FuncVar()
-                    [func.add_arg(a) for a in args]
-                    yield func
-                else:
-                    assert False, "Unreachable code"
+    args = odict(zip(arg_names, arg_types))
+    lambda_model = model.LambdaModel(name=func_name,
+                                     args=args,
+                                     body=ExpressionModel(func.body))
 
-        return list(unroll(res))
+    lambda_model.add_pre_cond(str_to_ast(pre_cond.s))
+    lambda_model.add_post_cond(str_to_ast(post_cond.s))
+    lambda_model.src_data['lineno'] = node.lineno
+    return lambda_model
 
 
 class LambdaVisitor(ast.NodeVisitor):
     """Visit lambda definition wrapped in macro."""
 
-    def __init__(self):
+    def __init__(self, recursive=True):
+        self.recursive = recursive
         self.result = []
+
+    def generic_visit(self, node):
+        if self.recursive:
+            return super().generic_visit(node)
+        # raise Exception("{} not allowed".format(type(node)))
+
+    def visit_Module(self, node):
+        for stmt in node.body:
+            self.visit(stmt)
 
     def visit_Assign(self, node: ast.Assign):
         if not is_assign_lambda_def(node):
@@ -97,13 +108,15 @@ class LambdaVisitor(ast.NodeVisitor):
 
         target_func_name = node.targets[0].id
 
-        prs = LambdaParser()
-        lambda_model = prs.parse_lambda_node(node.value, target_func_name)
+        lambda_model = parse_lambda_node(node.value, target_func_name)
 
         self.result.append(lambda_model)
 
 
 def is_assign_lambda_def(node):
+    if not isinstance(node, ast.Assign):
+        return False
+
     if not isinstance(node.value, ast.Call):
         return False
 

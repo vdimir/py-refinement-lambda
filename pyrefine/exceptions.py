@@ -5,12 +5,13 @@ class PyrefineException(Exception):
         if src_info is None:
             self.src_info = {}
 
-    def __str__(self):
+    def __repr__(self):
         return "%s(%r)" % (self.__class__.__name__, self.__dict__)
 
 
 class CheckerException(PyrefineException):
-    def __init__(self, src_info=None, reason=""):
+    def __init__(self, src_info=None, reason="", counterexample=None):
+        self.counterexample = counterexample
         self.reason = reason
         self.src_info = src_info
         if src_info is None:
@@ -22,6 +23,17 @@ class LambdaDefinitionException(CheckerException):
         self.counterexample = counterexample
         self.src_info = src_info
         self.name = name
+
+    def __str__(self):
+        res_str = "Return contraints for {} may not hold!".format(self.name)
+        if 'lineno' in self.src_info:
+            res_str += " (lineno: {})".format(self.src_info['lineno'])
+        return res_str
+
+
+
+class WhileDefinitionException(CheckerException):
+    pass
 
 
 class ErrorCallException(CheckerException):
