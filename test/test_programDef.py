@@ -144,7 +144,8 @@ class TestProgramDef(unittest.TestCase):
                             'simple', 'simple_if', 'simple_if2', 'simple_if3',
                             'simple_if_else', 'simple_while', 'gcd']:
             self.assertIn(func_name, res)
-
+        self.assertIn('neg', res['using_lam'].child)
+        self.assertIn('example_simple1', res['using_lam'].child)
 
 
 

@@ -5,6 +5,7 @@ import sys
 import ast
 
 from pyrefine.checker import check_program
+from sty import fg, ef, rs
 
 
 def main():
@@ -17,10 +18,16 @@ def main():
 
     defined_funcs = check_program(program_ast, raise_exception=False)
     for n, e in defined_funcs.items():
-        if e is None:
-            print(n, "ok.")
+        if e.is_ok():
+            print("Checking {name_format}{name}{rs}... {color}Ok.{rs}".format(
+                name=n, color=fg.green, rs=rs.all, name_format=ef.bold))
+            for c in e.child:
+                print("\t{} - {color}Ok.{rs}".format(c, rs=rs.all, color=fg.green))
+
         else:
-            print(n, "Error: ", str(e))
+            print("Checking {name_format}{name}{rs}... {color}Error:{rs}\n\t"
+                  "{err}{rs}".format(name=n, err=str(e.err), color=fg.red,
+                                     rs=rs.all, name_format=ef.bold))
 
 
 if __name__ == '__main__':

@@ -5,9 +5,12 @@ from pyrefine.model.types import ModelVar
 
 
 class ScopedContext:
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, values=None):
         self.parent = parent
-        self.values = odict()
+        if values is None:
+            self.values = odict()
+        else:
+            self.values = odict(values)
 
     def add(self, name, val):
         if name in self.values:
@@ -30,6 +33,12 @@ class ScopedContext:
         assert new_ctx.parent is None
         assert new_ctx.scope_const is None
         merge_dict(self.values, new_ctx.values)
+
+    def __getitem__(self, name):
+        return self.get(name)
+
+    def __setitem__(self, name, val):
+        self.values[name] = val
 
     def __contains__(self, name):
         if name in self.values:

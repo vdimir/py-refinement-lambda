@@ -1,5 +1,6 @@
 import ast
 import z3
+from pyrefine.model.vars_context import ScopedContext
 
 from pyrefine.checker.invocation_model import process_invocation_model
 from pyrefine.model.types import ModelVar
@@ -20,10 +21,8 @@ class FuncDefCheckVisitor(ast.NodeVisitor):
     def __init__(self, defined_funcs=None):
         self.var_scope = None
         self.constraints = []
-        self.defined_funcs = defined_funcs
+        self.defined_funcs = ScopedContext(parent=ScopedContext(values=defined_funcs))
         self.ret_vals = []
-        if defined_funcs is None:
-            self.defined_funcs = {}
 
     def visit_If(self, node):
         cond_names = NameVisitor.get_names(node.test)
@@ -185,6 +184,10 @@ class FuncDefCheckVisitor(ast.NodeVisitor):
 
         raise Exception("Unreachable code!")
 
+    def visit_Expr(self, node):
+        if isinstance(node.value, ast.Call) and node.value.func.id == 'print':
+            return
+        self.generic_visit(node)
     def generic_visit(self, node):
         raise Exception("{} not allowed".format(type(node)))
 
@@ -218,5 +221,6 @@ def check_func_model(func_model, defined_funcs=None):
         if counterexample:
             raise LambdaDefinitionException(func_model.src_data, func_model.func_name,
                                             counterexample)
+    return visitor.defined_funcs
 
 

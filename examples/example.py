@@ -1,73 +1,122 @@
+
 #!/usr/bin/env python
 
 from pyrefine import *
 
-example_global = define_('int -> int -> int', 'a > 0', 'ret > b',
-                   lambda a, b: a + b)
 
-def main():
 
-    # example_tup = xdefine_('(int, int, int) -> int -> (int, int)',
-    #                        'a[0] > a[1] and 0 <= i < 3',
-    #                        lambda a, i: (a[i], a[(i + 1) % 3]))
+def gcd2(x, y):
+    define_('int -> int -> int',
+            'x > 0 and y > 0',
+            'ret > 0')
+    t = c_('int', 0)
+    while x != y:
+        loop_('x > 0 and y > 0', 'x + y')
+        if x > y:
+            y, x = x, y
+        y = y - x
+    return y
 
-    example1 = define_('int -> int -> int', 'a >= b', 'ret >= 0',
-                       lambda a, b: example_global(a - b + 1, 1))
 
-    example_const = define_('int', 'True', 'ret == 666',
-                            lambda: 666)
+def simple(x, y):
+    define_('int -> int -> int',
+            'x > 0 and y > 0',
+            'ret == x + y')
+    a = c_('int', x)
+    res = c_('int', 0)
+    res = a + y
+    return res
 
-    example_lam_outer = define_('int -> int', 'a > 1', 'ret >= 1',
-                                lambda a: example1(a+example_const(), 1) + 1)
 
-    example_simple1 = define_('int -> int', 'a >= 0', 'ret > 0',
-                              lambda a: 1 if a == 0 else a * 2)
+def simple_if(x, y):
+    define_('int -> int -> int',
+            'x != 0',
+            'ret > 0')
+    a = c_('int', 0)
+    a = x
+    if x < 0:
+        a = -x
+    return a
 
-    example_simple2 = define_('int -> int', 'a > -10', 'ret > -10',
-                              lambda a: a + 1)
 
-    example_mean = define_('int -> int -> int',
-                           'True',
-                           '(ret <= a or ret <= b) and (a <= ret or b <= ret)',
-                           lambda a, b: (a + b) // 2)
+def simple_if2(x, y):
+    define_('int -> int -> int',
+            'y >= 0 and x >= 0',
+            'ret > 0')
+    a = c_('int', 1)
+    if y > x:
+        a = y
+    b = c_('int', y)
+    return a + b
 
-    example_mean_pos = define_('int -> int -> int',
-                               'a > 0 and b > 0',
-                               '(ret <= a or ret <= b) and (0 <= ret)',
-                               lambda a, b: (a + b) // 2)
 
-    example_imp = define_('int -> int -> int',
-                          '(x > 0) >> (y > 1)',
-                          'ret > x or ret <= 0 ',
-                          lambda x, y: x * y)
+def simple_if3(x, y):
+    define_('int -> int -> bool',
+            'y >= 0',
+            'ret == True')
+    if x > y:
+        x = y
+    return x <= y
 
-    example_diff_sign = define_('int -> int -> int',
-                                'a*b < 0',
-                                'ret > 0',
-                                lambda a, b: a if a > b else b)
 
-    example_simple3 = define_('int -> int', 'True', 'ret > a',
-                              lambda a: a + 1)
+def simple_if_else(x, y):
+    define_('int -> int -> int',
+            'True',
+            'ret > 0')
+    a = c_('int', 0)
+    if x > y:
+        a = x - y
+    else:
+        a = y - x + 1
+    return a
 
-    example_simple4 = define_('bool -> bool -> bool', 'True', 'ret == (a >> b)',
-                              lambda a, b: b if a else True)
 
-    y = example_mean_pos(example_simple1(2), 1)
-    c = c_(example_diff_sign(example_mean(-3, -1), example_mean(1, example_simple1(1) + 5)))
+def simple_while(x):
+    define_('int ->  int',
+            'x >= 0',
+            'ret >= 0')
+    s = c_('int', 0)
+    while x != 0:
+        loop_('x >= 0 and s >= 0', 'x')
+        s = s + x
+        x = x - 1
+    return s
 
-    a = c_('int', -5)
-    zero = c_('int', a + 5)
 
-    # example_global = define_('bool -> bool -> bool', 'True', 'ret == (a >> b)',
-    #                           lambda a, b: b if a else True)
-    y1 = c_('int', example1(example_simple1(zero), -y))
-    z = c_('int', example_mean_pos(1 if y1 <= 0 else y1, 1) + 1)
+def gcd(x, y):
+    define_('int -> int -> int',
+            'x > 0 and y > 0',
+            'ret > 0')
+    while x != y:
+        loop_('x > 0 and y > 0', 'x + y')
+        if x < y:
+            y = y - x
+        else:
+            x = x - y
+    return y
 
-    q = c_('int', -666)
-    example_simple_global_var = define_('int -> int', 'True', 'ret >= 0',
-                                        lambda x: x if x > 0 else z)
+
+def proof():
+    define_('int', 'True', 'True')
+    prof_imp = define_('bool -> bool -> bool', 'True', 'ret == (a >> b)',
+                       lambda a, b: b if a else True)
+    prof_3 = define_('bool -> bool', 'True', 'ret',
+                     lambda a: a or not a)
+    ex1 = define_('bool -> bool -> bool', 'True', 'ret',
+                  lambda a, b: prof_imp((a and b), a))
+    ex7 = define_('bool -> bool -> bool', 'True', 'ret',
+                  lambda a, b: prof_imp(a, prof_imp(prof_imp(a, b), b)))
+    exDeMorgan1 = define_('bool -> bool -> bool', 'True', 'ret',
+                          lambda a, b: not (a and b) == (not a or not b))
+
+    # print(prof_imp(False, False))
+    # print(prof_imp(False, True))
+    # print(prof_imp(True, False))
+    # print(prof_imp(True, True))
 
 
 if __name__ == '__main__':
-    main()
-    print('Done')
+    print(gcd2(8, 12))
+    proof()
+
+    print("Done")

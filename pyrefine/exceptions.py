@@ -8,6 +8,12 @@ class PyrefineException(Exception):
     def __repr__(self):
         return "%s(%r)" % (self.__class__.__name__, self.__dict__)
 
+    def __str__(self):
+        res_str = self.reason
+        if 'lineno' in self.src_info:
+            res_str += " (lineno: {})".format(self.src_info['lineno'])
+        return res_str
+
 
 class CheckerException(PyrefineException):
     def __init__(self, src_info=None, reason="", counterexample=None):
@@ -23,13 +29,7 @@ class LambdaDefinitionException(CheckerException):
         self.counterexample = counterexample
         self.src_info = src_info
         self.name = name
-
-    def __str__(self):
-        res_str = "Return contraints for {} may not hold!".format(self.name)
-        if 'lineno' in self.src_info:
-            res_str += " (lineno: {})".format(self.src_info['lineno'])
-        return res_str
-
+        self.reason = "Return constraints for {} may not hold!".format(self.name)
 
 
 class WhileDefinitionException(CheckerException):
