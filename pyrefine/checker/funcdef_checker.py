@@ -90,24 +90,60 @@ class FuncDefCheckVisitor(ast.NodeVisitor):
             while_inner_scope.update(name)
 
         self.var_scope = while_inner_scope
-        inv_pre_exp = expr_to_z3(loop_inv, while_inner_scope, self.constraints)
-        dec_func_before = expr_to_z3(dec_func, while_inner_scope, self.constraints)
+        inv_pre_exp = expr_to_z3(loop_inv, while_inner_scope, self.constraints,
+                                 defined_funcs=self.defined_funcs)
+        dec_func_before = expr_to_z3(dec_func, while_inner_scope, self.constraints,
+                                     defined_funcs=self.defined_funcs)
 
         self.constraints.append(inv_pre_exp)
-        test_cond = expr_to_z3(cond_ast, while_inner_scope, self.constraints)
+        test_cond = expr_to_z3(cond_ast, while_inner_scope, self.constraints,
+                               defined_funcs=self.defined_funcs)
         self.constraints.append(test_cond)
 
         self.visit_list(body)
         check_invariant(while_inner_scope)
 
-        dec_func_after = expr_to_z3(dec_func, while_inner_scope, self.constraints)
-        decrease_condition = z3.And(dec_func_before > dec_func_after, dec_func_after >= 0)
-        counterexample = proof(self.constraints, decrease_condition)
+        dec_func_after = expr_to_z3(dec_func, while_inner_scope, self.constraints,
+                                    defined_funcs=self.defined_funcs)
+
+        def assert_while(counterexample, msg):
+            raise WhileDefinitionException(reason=msg, counterexample=counterexample,
+                src_info={'lineno': node.lineno})
+
+        opt = z3.Optimize()
+        for c in self.constraints:
+            if isinstance(c, bool):
+                continue
+            opt.add(c)
+
+        h = opt.minimize(dec_func_after)
+        res = opt.check()
+        if res != z3.sat:
+            assert_while(None, "Loop function cant be minimized!")
+
+        model = opt.model()
+        dec_min = model.evaluate(dec_func_after)
+        test_cond_after = expr_to_z3(cond_ast, while_inner_scope, self.constraints,
+                               defined_funcs=self.defined_funcs)
+        break_on_zero = z3.Implies(dec_func_after == dec_min, z3.Not(test_cond_after))
+        counterexample = proof(self.constraints, break_on_zero)
+
         if counterexample:
-            raise WhileDefinitionException(reason="Decreasing function unconstrained!"
-                                                  "(Must hold: {})".format(decrease_condition),
-                                           counterexample=counterexample,
-                                           src_info={'lineno': node.lineno})
+            assert_while(counterexample,
+                         "Loop function equals zero not follow end of loop!")
+
+        counterexample = proof(self.constraints, z3.Not(dec_func_after == dec_min))
+        if counterexample is None:
+            assert_while(counterexample, "Loop function not reach minimum!")
+
+        counterexample = proof(self.constraints, dec_func_before > dec_func_after)
+        if counterexample:
+            assert_while(counterexample, "Loop function not decrease!")
+
+        counterexample = proof(self.constraints, dec_func_after >= 0)
+        if counterexample:
+            assert_while(counterexample, "Loop function not positive!")
+
         self.var_scope = cur_scope
 
         name_to_update = set(while_inner_scope.variables.values.keys())

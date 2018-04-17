@@ -73,13 +73,27 @@ def simple_if_else(x, y):
 
 def simple_while(x):
     define_('int ->  int',
+            'x > 0',
+            'ret > 0')
+    s = c_('int', x)
+    x = x - 1
+    while x != 0:
+        loop_('x >= 0 and s > 0', 'x')
+        s = s + x
+        x = x - 1
+    return s
+
+
+def simple_while2(x):
+    define_('int ->  int',
             'x >= 0',
             'ret >= 0')
     s = c_('int', 0)
-    while x != 0:
-        loop_('x >= 0 and s >= 0', 'x')
-        s = s + x
-        x = x - 1
+    i = c_('int', 0)
+    while i != x:
+        loop_('s >= 0 and x >= 0 and 0 <= i <= x ', 'x - i')
+        s = s + i
+        i = i + 1
     return s
 
 

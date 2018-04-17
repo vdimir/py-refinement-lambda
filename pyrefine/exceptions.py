@@ -18,18 +18,15 @@ class PyrefineException(Exception):
 class CheckerException(PyrefineException):
     def __init__(self, src_info=None, reason="", counterexample=None):
         self.counterexample = counterexample
-        self.reason = reason
-        self.src_info = src_info
-        if src_info is None:
-            self.src_info = {}
+        super().__init__(src_info, reason)
 
 
 class LambdaDefinitionException(CheckerException):
     def __init__(self, src_info, name, counterexample=None):
         self.counterexample = counterexample
-        self.src_info = src_info
         self.name = name
-        self.reason = "Return constraints for {} may not hold!".format(self.name)
+        super().__init__(src_info,
+                         "Return constraints for {} may not hold!".format(self.name))
 
 
 class WhileDefinitionException(CheckerException):

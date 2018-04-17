@@ -70,7 +70,7 @@ class AssignExprVisitor(ast.NodeVisitor):
 
         if value.func.id not in [CHECK_ASSIGN_MACRO_NAME, DEFINE_LAMBDA_MACROS_NAME]:
             raise CheckerException(reason="Function {} not defined".format(value.func.id),
-                                   src_info={'lineno', self.cur_lineno})
+                                   src_info={'lineno': self.cur_lineno})
 
         if value.func.id == DEFINE_LAMBDA_MACROS_NAME:
             return target_name, 'FUNCTION', parse_lambda_node(value, target_name)

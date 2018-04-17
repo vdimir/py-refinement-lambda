@@ -22,7 +22,7 @@ def main():
             print("Checking {name_format}{name}{rs}... {color}Ok.{rs}".format(
                 name=n, color=fg.green, rs=rs.all, name_format=ef.bold))
             for c in e.child:
-                print("\t{} - {color}Ok.{rs}".format(c, rs=rs.all, color=fg.green))
+                print("  {} - {color}Ok.{rs}".format(c, rs=rs.all, color=fg.green))
 
         else:
             print("Checking {name_format}{name}{rs}... {color}Error:{rs}\n\t"
@@ -34,9 +34,4 @@ if __name__ == '__main__':
     if len(sys.argv) < 2:
         print("Usage: %s <file.py>" % sys.argv[0])
         sys.exit(0)
-    try:
-        main()
-    except Exception as e:
-        print()
-        print("Exception:")
-        print(e)
+    main()
