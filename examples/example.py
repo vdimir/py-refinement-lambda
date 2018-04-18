@@ -12,6 +12,7 @@ def gcd2(x, y):
         loop_('x > 0 and y > 0', 'x + y')
         if x > y:
             y, x = x, y
+        assert y > x
         y = y - x
     assert x == y
     return y
@@ -122,10 +123,11 @@ def proof():
     exDeMorgan1 = define_('bool -> bool -> bool', 'True', 'ret',
                           lambda a, b: not (a and b) == (not a or not b))
 
-    print(prof_imp(False, False))
-    print(prof_imp(False, True))
-    print(prof_imp(True, False))
-    print(prof_imp(True, True))
+    assert prof_imp(False, False)
+    assert prof_imp(False, True)
+    assert not prof_imp(True, False)
+    assert prof_imp(True, True)
+
 
 
 if __name__ == '__main__':

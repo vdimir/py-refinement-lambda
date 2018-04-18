@@ -199,7 +199,7 @@ class FuncDefCheckVisitor(ast.NodeVisitor):
 
     def visit_Assert(self, node):
         test = ExpressionModel(node.test)
-        assert_expr = expr_to_z3(test, self.var_scope, self.constraints)
+        assert_expr = expr_to_z3(test, self.var_scope, self.constraints, defined_funcs=self.defined_funcs)
         counterexample = proof(self.constraints, assert_expr )
 
         if counterexample:
