@@ -197,6 +197,16 @@ class FuncDefCheckVisitor(ast.NodeVisitor):
                 continue
             raise Exception("Unreachable code!")
 
+    def visit_Assert(self, node):
+        test = ExpressionModel(node.test)
+        assert_expr = expr_to_z3(test, self.var_scope, self.constraints)
+        counterexample = proof(self.constraints, assert_expr )
+
+        if counterexample:
+            raise CheckerException(src_info={'lineno': node.lineno},
+                                   counterexample=counterexample,
+                                   reason="Assert not hold!")
+
     def visit_Return(self, node):
         value = expr_to_z3(ExpressionModel(node.value), self.var_scope, self.constraints)
         self.ret_vals.append(value)

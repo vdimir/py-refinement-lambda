@@ -1,8 +1,6 @@
-
 #!/usr/bin/env python
 
 from pyrefine import *
-
 
 
 def gcd2(x, y):
@@ -15,6 +13,7 @@ def gcd2(x, y):
         if x > y:
             y, x = x, y
         y = y - x
+    assert x == y
     return y
 
 
@@ -123,14 +122,14 @@ def proof():
     exDeMorgan1 = define_('bool -> bool -> bool', 'True', 'ret',
                           lambda a, b: not (a and b) == (not a or not b))
 
-    # print(prof_imp(False, False))
-    # print(prof_imp(False, True))
-    # print(prof_imp(True, False))
-    # print(prof_imp(True, True))
+    print(prof_imp(False, False))
+    print(prof_imp(False, True))
+    print(prof_imp(True, False))
+    print(prof_imp(True, True))
 
 
 if __name__ == '__main__':
-    print(gcd2(8, 12))
+    print(gcd(8, 12))
     proof()
 
     print("Done")
