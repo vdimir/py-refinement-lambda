@@ -91,7 +91,7 @@ def simple_while2(x):
     s = c_('int', 0)
     i = c_('int', 0)
     while i != x:
-        loop_('s >= 0 and x >= 0 and 0 <= i <= x ', 'x - i')
+        loop_('0 <= s and x >= 0 and 0 <= i <= x ', 'x - i')
         s = s + i
         i = i + 1
     return s
@@ -127,7 +127,6 @@ def proof():
     assert prof_imp(False, True)
     assert not prof_imp(True, False)
     assert prof_imp(True, True)
-
 
 
 if __name__ == '__main__':

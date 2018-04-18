@@ -83,3 +83,26 @@ class NameVisitor(ast.NodeVisitor):
         visitor = NameVisitor()
         visitor.visit(node)
         return visitor.names
+
+
+class AssignNameVisitor(ast.NodeVisitor):
+    def __init__(self):
+        self.names = []
+
+    def visit_Assign(self, node: ast.Assign):
+        if isinstance(node.targets[0], ast.Tuple):
+            for t in node.targets[0].elts:
+                self.names.append(t.id)
+            return
+
+        if not isinstance(node.targets[0], ast.Name):
+            return
+
+        self.names.append(node.targets[0].id)
+        return
+
+    @staticmethod
+    def get_names(node):
+        visitor = AssignNameVisitor()
+        visitor.visit(node)
+        return visitor.names

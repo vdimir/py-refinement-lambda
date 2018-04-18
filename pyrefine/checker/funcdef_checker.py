@@ -13,7 +13,8 @@ from pyrefine.ast_parser import get_assign_expr_model
 from pyrefine.exceptions import WhileDefinitionException, LambdaDefinitionException, \
     CheckerException
 from pyrefine.model import ExpressionModel, VarsContext, LambdaModel, InvocationModel
-from pyrefine.ast_parser.funcdef_parser import NameVisitor, parse_loop_definition
+from pyrefine.ast_parser.funcdef_parser import NameVisitor, parse_loop_definition, \
+    AssignNameVisitor
 from pyrefine.z3_wrapper import proof
 
 
@@ -70,6 +71,10 @@ class FuncDefCheckVisitor(ast.NodeVisitor):
         loop_inv, dec_func = parse_loop_definition(loop_def)
 
         cond_names = NameVisitor.get_names(node.test)
+        updated_var_names = AssignNameVisitor.get_names(node)
+        cond_names += updated_var_names
+        cond_names = set(cond_names)
+
         cond_ast = ExpressionModel(node.test)
 
         def check_invariant(scope):
@@ -124,7 +129,7 @@ class FuncDefCheckVisitor(ast.NodeVisitor):
         model = opt.model()
         dec_min = model.evaluate(dec_func_after)
         test_cond_after = expr_to_z3(cond_ast, while_inner_scope, self.constraints,
-                               defined_funcs=self.defined_funcs)
+                                     defined_funcs=self.defined_funcs)
         break_on_zero = z3.Implies(dec_func_after == dec_min, z3.Not(test_cond_after))
         counterexample = proof(self.constraints, break_on_zero)
 
@@ -234,6 +239,7 @@ class FuncDefCheckVisitor(ast.NodeVisitor):
         if isinstance(node.value, ast.Call) and node.value.func.id == 'print':
             return
         self.generic_visit(node)
+
     def generic_visit(self, node):
         raise Exception("{} not allowed".format(type(node)))
 
