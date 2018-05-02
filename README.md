@@ -14,8 +14,11 @@ Python code checker based on Hoare logic to develop verified software with refin
 ## Supported language elements
 
 [x] Function Definitions
+
 [x] Lambda Functions
+
 [x] If Statements
+
 [x] While Loops
 
 ## Usage
@@ -72,8 +75,8 @@ def gcd(x, y):
 
 ## Examples
 
-You can find examples in ./examples/example.py
+You can find examples in [example.py](examples/example.py).
 
-More examples in ./test
+More examples in [test](test) folder.
 
 
