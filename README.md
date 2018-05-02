@@ -13,13 +13,10 @@ Python code checker based on Hoare logic to develop verified software with refin
 
 ## Supported language elements
 
-[x] Function Definitions
-
-[x] Lambda Functions
-
-[x] If Statements
-
-[x] While Loops
+- [x] Function Definitions
+- [x] Lambda Functions
+- [x] If Statements
+- [x] While Loops
 
 ## Usage
  To run checker script run:
