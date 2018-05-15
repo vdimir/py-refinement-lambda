@@ -112,21 +112,26 @@ def gcd(x, y):
 
 def proof():
     define_('int', 'True', 'True')
-    prof_imp = define_('bool -> bool -> bool', 'True', 'ret == (a >> b)',
-                       lambda a, b: b if a else True)
-    prof_3 = define_('bool -> bool', 'True', 'ret',
-                     lambda a: a or not a)
-    ex1 = define_('bool -> bool -> bool', 'True', 'ret',
-                  lambda a, b: prof_imp((a and b), a))
-    ex7 = define_('bool -> bool -> bool', 'True', 'ret',
-                  lambda a, b: prof_imp(a, prof_imp(prof_imp(a, b), b)))
-    exDeMorgan1 = define_('bool -> bool -> bool', 'True', 'ret',
-                          lambda a, b: not (a and b) == (not a or not b))
+    implies = define_('bool -> bool -> bool', 'True',
+                 'ret == (a >> b)',
+                 lambda a, b: b if a else True)
+    # (a /\ b) -> a
+    prop1 = define_('bool -> bool -> bool', 'True', 'ret',
+                 lambda a, b: implies((a and b), a))
+    # a -> ((a -> b) -> b)
+    prop2 = define_('bool -> bool -> bool', 'True', 'ret',
+                 lambda a, b: implies(a, implies(implies(a, b), b)))
+    # a \/ ~a
+    excluded_middle = define_('bool -> bool', 'True', 'ret',
+                 lambda a: a or not a)
+    # ~(a /\ b) <-> ~a \/ ~b
+    de_morgan = define_('bool -> bool -> bool', 'True', 'ret',
+                 lambda a, b: not (a and b) == (not a or not b))
 
-    assert prof_imp(False, False)
-    assert prof_imp(False, True)
-    assert not prof_imp(True, False)
-    assert prof_imp(True, True)
+    assert implies(False, False)
+    assert implies(False, True)
+    assert not implies(True, False)
+    assert implies(True, True)
 
 
 if __name__ == '__main__':
