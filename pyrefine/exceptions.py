@@ -38,6 +38,7 @@ class ErrorCallException(CheckerException):
         self.reason = reason
         self.src_info = src_info
         self.name = name
+        self.reason = "Error Call"
 
 
 class ParseException(PyrefineException):
