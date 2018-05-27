@@ -70,6 +70,8 @@ def gcd(x, y):
     return y                     # y > 0
 ```
 
+[![asciicast](https://asciinema.org/a/kwI5XqladLwfEoZbfYWV6Z4i3.png)](https://asciinema.org/a/kwI5XqladLwfEoZbfYWV6Z4i3)
+
 ## Examples
 
 You can find examples in [example.py](examples/example.py).
