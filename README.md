@@ -70,7 +70,7 @@ def gcd(x, y):
     return y                     # y > 0
 ```
 
-[![asciicast](https://asciinema.org/a/kwI5XqladLwfEoZbfYWV6Z4i3.png)](https://asciinema.org/a/kwI5XqladLwfEoZbfYWV6Z4i3)
+[![asciicast](https://asciinema.org/a/Nsw6AC4yzJvfaKONrwQB8lb9R.png)](https://asciinema.org/a/Nsw6AC4yzJvfaKONrwQB8lb9R)
 
 ## Examples
 
