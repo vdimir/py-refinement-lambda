@@ -213,7 +213,8 @@ class FuncDefCheckVisitor(ast.NodeVisitor):
                                    reason="Assert not hold!")
 
     def visit_Return(self, node):
-        value = expr_to_z3(ExpressionModel(node.value), self.var_scope, self.constraints)
+        value = expr_to_z3(ExpressionModel(node.value), self.var_scope,
+                           self.constraints, defined_funcs=self.defined_funcs)
         self.ret_vals.append(value)
 
     def visit(self, node):
