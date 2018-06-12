@@ -44,6 +44,7 @@ class ErrorCallException(CheckerException):
 class ParseException(PyrefineException):
     def __init__(self, expr_str=None, reason=None, src_data=None):
         self.src_data = src_data
+        self.src_info = {}
         self.reason = reason
         self.expr_str = expr_str
 

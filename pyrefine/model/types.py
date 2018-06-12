@@ -22,6 +22,14 @@ class IntVar(SimpleConst):
         return 'Int'
 
 
+class RealVar(SimpleConst):
+    def get_sort(self):
+        return z3.RealSort()
+
+    def __str__(self):
+        return 'Real'
+
+
 class BoolVar(SimpleConst):
     def get_sort(self):
         return z3.BoolSort()

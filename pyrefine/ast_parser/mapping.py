@@ -29,6 +29,7 @@ _operator_ast_to_model_dsl = {
 _type_string_to_model = {
     'int': types.IntVar,
     'bool': types.BoolVar,
+    'float': types.RealVar,
 }
 
 
