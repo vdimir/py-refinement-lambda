@@ -4,7 +4,7 @@ from os.path import join, dirname
 
 setup(
     name='pyrefine',
-    version='0.0.0',
+    version='0.0.1',
     packages=['pyrefine'],
-    install_requires=['z3-solver']
+    install_requires=['z3-solver', 'sty']
 )
